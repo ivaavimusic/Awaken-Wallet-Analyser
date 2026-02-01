@@ -33,10 +33,10 @@ export default function Home() {
   const getBadgeClass = (tx: DisplayTransaction) => {
     const isIncoming = tx.isIncoming || tx.type === 'transfer_in';
     const tag = tx.Tag?.toLowerCase();
-    if (tag === 'swap') return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
-    if (tag === 'contract') return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
-    if (isIncoming) return 'bg-green-500/20 text-green-300 border-green-500/30';
-    return 'bg-red-500/20 text-red-300 border-red-500/30';
+    if (tag === 'swap') return 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30';
+    if (tag === 'contract') return 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30';
+    if (isIncoming) return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30';
+    return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30';
   };
 
   const handleChainSelect = (chainId: string) => {
