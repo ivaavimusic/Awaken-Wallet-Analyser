@@ -78,11 +78,20 @@ export interface BlockscoutAPIResponse<T> {
 
 /**
  * Combined transaction for display
+ * Extends AwakenTransaction with additional fields for UI display
  */
 export interface DisplayTransaction extends AwakenTransaction {
   timestamp: number;      // Unix timestamp for sorting
   isIncoming: boolean;    // True if receiving, false if sending
   type: TransactionType;  // Transaction type enum
+  // Optional MegaETH-specific display fields
+  block?: string;
+  method?: string;
+  from?: string;
+  to?: string;
+  status?: string;
+  value?: string;
+  fee?: string;
 }
 
 /**

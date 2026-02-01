@@ -80,12 +80,13 @@ export function downloadCSV(
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
 
+    // Determine asset from first transaction for default filename
+    const asset = transactions.length > 0 ? transactions[0].Asset : 'transactions';
+    const defaultFilename = `${asset.toLowerCase()}-transactions-${new Date().toISOString().split('T')[0]}.csv`;
+
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute(
-        'download',
-        filename || `megaeth-transactions-${new Date().toISOString().split('T')[0]}.csv`
-    );
+    link.setAttribute('download', filename || defaultFilename);
     link.style.visibility = 'hidden';
 
     document.body.appendChild(link);

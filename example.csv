@@ -1,0 +1,4 @@
+Date,Asset,Amount,Fee,P&L,Payment Token,ID,Notes,Tag,Transaction Hash
+2024-01-15,BTC,0.5,0.001,125.50,USDT,TXN001,Long position opened,open_position,0x1234567890abcdef1234567890abcdef12345678
+2024-01-16,ETH,-2.0,0.002,-45.75,USDT,TXN002,Short position closed,close_position,0xabcdef1234567890abcdef1234567890abcdef12
+2024-01-17,SOL,10.0,0.005,89.25,USDT,TXN003,Position closed with profit,close_position,0x9876543210fedcba9876543210fedcba98765432
