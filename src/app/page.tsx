@@ -177,7 +177,7 @@ export default function Home() {
             <div className="mt-3 p-4 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
               <div className="flex items-start gap-3">
                 <span className="text-2xl">🙈</span>
-                <p className="text-sm text-amber-200 dark:text-amber-100 font-medium">{error}</p>
+                <p className="text-sm text-amber-800 dark:text-amber-100 font-medium">{error}</p>
               </div>
             </div>
           )}
