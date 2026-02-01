@@ -34,8 +34,13 @@ export function Navbar({ selectedChain, onChainSelect }: NavbarProps) {
 
                 {/* Left: Minimal Title */}
                 <div className="flex items-center gap-4">
+                    <img
+                        src="/logo_bunnyAnalyzer.svg"
+                        alt="Bunny Wallet Analyzer"
+                        className={`h-8 w-auto ${isDark ? 'brightness-0 invert' : ''}`}
+                    />
                     <h1 className="text-xl font-bold tracking-tight">
-                        {selectedChain.name} Explorer
+                        Bunny Wallet Analyzer
                     </h1>
                 </div>
 

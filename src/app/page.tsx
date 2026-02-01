@@ -14,32 +14,7 @@ import { Navbar } from '@/components/Navbar';
 import { StatsGrid } from '@/components/StatsGrid';
 import { PromoCards } from '@/components/PromoCards';
 import ShinyText from '@/components/ShinyText';
-
-interface DisplayTransaction {
-  // Awaken CSV format (required for export)
-  Date: string;
-  Asset: string;
-  Amount: string;
-  Fee: string;
-  'P&L': string;
-  'Payment Token': string;
-  ID: string;
-  Notes: string;
-  Tag: string;
-  'Transaction Hash': string;
-  // Additional fields for display
-  timestamp: number;
-  isIncoming: boolean;
-  type?: string;
-  // Optional MegaETH-specific display fields
-  block?: string;
-  method?: string;
-  from?: string;
-  to?: string;
-  status?: string;
-  value?: string;
-  fee?: string;
-}
+import { DisplayTransaction } from '@/types';
 
 export default function Home() {
   const [address, setAddress] = useState('');
