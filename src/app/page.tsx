@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Download, Search, CheckCircle2, XCircle, Layers } from 'lucide-react';
 import { downloadCSV } from '@/lib/csv';
@@ -29,6 +28,16 @@ export default function Home() {
 
   const chains = getSupportedChains();
   const selectedChain = chains.find(c => c.id === selectedChainId) || chains[0];
+
+  // Helper to get badge color based on transaction type
+  const getBadgeClass = (tx: DisplayTransaction) => {
+    const isIncoming = tx.isIncoming || tx.type === 'transfer_in';
+    const tag = tx.Tag?.toLowerCase();
+    if (tag === 'swap') return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+    if (tag === 'contract') return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+    if (isIncoming) return 'bg-green-500/20 text-green-300 border-green-500/30';
+    return 'bg-red-500/20 text-red-300 border-red-500/30';
+  };
 
   const handleChainSelect = (chainId: string) => {
     setSelectedChainId(chainId);
@@ -199,45 +208,45 @@ export default function Home() {
             </div>
 
             <Card className="overflow-hidden border-0 bg-card text-card-foreground">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border/10 hover:bg-transparent">
-                      <TableHead className="text-muted-foreground">Txn Hash</TableHead>
-                      <TableHead className="text-muted-foreground">Type</TableHead>
-                      <TableHead className="text-muted-foreground">Block</TableHead>
-                      <TableHead className="text-muted-foreground">Age</TableHead>
-                      <TableHead className="text-muted-foreground">From</TableHead>
-                      <TableHead className="text-muted-foreground">To</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Value</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+              <div className="max-h-[500px] overflow-y-auto px-4">
+                <table className="w-full caption-bottom text-sm">
+                  <thead className="sticky top-0 z-10 bg-card">
+                    <tr className="border-border/10 hover:bg-transparent border-b">
+                      <th className="text-muted-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">Txn Hash</th>
+                      <th className="text-muted-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">Type</th>
+                      <th className="text-muted-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">Block</th>
+                      <th className="text-muted-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">Age</th>
+                      <th className="text-muted-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">From</th>
+                      <th className="text-muted-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">To</th>
+                      <th className="text-muted-foreground h-10 px-2 text-right align-middle font-medium whitespace-nowrap">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {transactions
                       .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
                       .map((tx, index) => (
-                      <TableRow key={tx['Transaction Hash'] || `${currentPage}-${index}`} className="border-border/10 hover:bg-muted/10">
-                        <TableCell className="font-mono text-primary truncate max-w-[120px]">
+                      <tr key={tx['Transaction Hash'] || `${currentPage}-${index}`} className="border-border/10 hover:bg-muted/10 border-b transition-colors">
+                        <td className="p-2 align-middle whitespace-nowrap font-mono text-primary truncate max-w-[120px]">
                           {tx['Transaction Hash'] || ''}
-                        </TableCell>
-                        <TableCell>
-                          <span className="px-2 py-1 rounded bg-accent/20 text-xs font-mono border border-border/20">
+                        </td>
+                        <td className="p-2 align-middle whitespace-nowrap">
+                          <span className={`px-2 py-1 rounded text-xs font-mono border ${getBadgeClass(tx)}`}>
                             {tx.method || tx.Tag || 'Transfer'}
                           </span>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{tx.block || '-'}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
+                        </td>
+                        <td className="p-2 align-middle whitespace-nowrap text-muted-foreground text-sm">{tx.block || '-'}</td>
+                        <td className="p-2 align-middle whitespace-nowrap text-muted-foreground text-sm">
                           {formatDate(tx.timestamp)}
-                        </TableCell>
-                        <TableCell className="font-mono text-muted-foreground truncate max-w-[120px]">{tx.from || '-'}</TableCell>
-                        <TableCell className="font-mono text-muted-foreground truncate max-w-[120px]">{tx.to || '-'}</TableCell>
-                        <TableCell className="font-medium text-right">
+                        </td>
+                        <td className="p-2 align-middle whitespace-nowrap font-mono text-muted-foreground truncate max-w-[120px]">{tx.from || '-'}</td>
+                        <td className="p-2 align-middle whitespace-nowrap font-mono text-muted-foreground truncate max-w-[120px]">{tx.to || '-'}</td>
+                        <td className="p-2 align-middle whitespace-nowrap font-medium text-right">
                           {tx.value || tx.Amount} {selectedChain?.nativeSymbol || 'ETH'}
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ))}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
             </Card>
 
