@@ -16,6 +16,8 @@ import { PromoCards } from '@/components/PromoCards';
 import ShinyText from '@/components/ShinyText';
 import { DisplayTransaction } from '@/types';
 
+const ITEMS_PER_PAGE = 25;
+
 export default function Home() {
   const [address, setAddress] = useState('');
   const [transactions, setTransactions] = useState<DisplayTransaction[]>([]);
@@ -23,6 +25,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [selectedChainId, setSelectedChainId] = useState('megaeth');
   const [hasSearched, setHasSearched] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const chains = getSupportedChains();
   const selectedChain = chains.find(c => c.id === selectedChainId) || chains[0];
@@ -33,6 +36,7 @@ export default function Home() {
     setError('');
     setHasSearched(false);
     setAddress('');
+    setCurrentPage(1);
   };
 
   const handleAnalyze = async (e?: React.FormEvent) => {
@@ -43,6 +47,7 @@ export default function Home() {
     setError('');
     setHasSearched(true);
     setTransactions([]);
+    setCurrentPage(1);
 
     try {
       let txs: DisplayTransaction[] = [];
@@ -208,8 +213,10 @@ export default function Home() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {transactions.slice(0, 10).map((tx, index) => (
-                      <TableRow key={tx['Transaction Hash'] || index} className="border-border/10 hover:bg-muted/10">
+                    {transactions
+                      .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                      .map((tx, index) => (
+                      <TableRow key={tx['Transaction Hash'] || `${currentPage}-${index}`} className="border-border/10 hover:bg-muted/10">
                         <TableCell className="font-mono text-primary truncate max-w-[120px]">
                           {tx['Transaction Hash'] || ''}
                         </TableCell>
@@ -234,9 +241,44 @@ export default function Home() {
               </div>
             </Card>
 
-            {transactions.length > 10 && (
-              <div className="text-center mt-4 text-muted-foreground text-sm">
-                Showing recent 10 of {transactions.length} transactions
+            {/* Pagination */}
+            {transactions.length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  ««
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  ‹
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page {currentPage} of {Math.ceil(transactions.length / ITEMS_PER_PAGE)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(transactions.length / ITEMS_PER_PAGE), p + 1))}
+                  disabled={currentPage === Math.ceil(transactions.length / ITEMS_PER_PAGE)}
+                >
+                  ›
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.ceil(transactions.length / ITEMS_PER_PAGE))}
+                  disabled={currentPage === Math.ceil(transactions.length / ITEMS_PER_PAGE)}
+                >
+                  »»
+                </Button>
               </div>
             )}
           </div>
