@@ -1,4 +1,4 @@
-# MegaETH Wallet Analyzer for Awaken Tax
+# Awaken Wallet Analyzer
 
 <p align="center">
   <strong>Analyze your MegaETH wallet transactions and export to Awaken Tax CSV format</strong>
@@ -14,12 +14,13 @@
 
 ## 🚀 Features
 
-- **Transaction Fetching**: Retrieves all transactions and token transfers from MegaETH blockchain
+- **Multi-Chain Support**: Supports both MegaETH and Keeta networks
+- **Transaction Fetching**: Retrieves all transactions from supported blockchains
 - **Awaken Tax Format**: Exports data in the exact CSV format required by [Awaken Tax](https://awaken.tax)
 - **Modern UI**: Premium dark theme with responsive design
-- **Sortable Table**: Sort by date, asset, amount, fee, or tag
-- **Search & Filter**: Quickly find specific transactions
-- **Pagination**: Handle large transaction histories efficiently
+- **Chain Selector**: Switch between MegaETH and Keeta networks
+- **Stats Dashboard**: View total transactions, active days, volume, and gas spent
+- **Daily Activity Chart**: Visual representation of your transaction activity
 - **One-Click Export**: Download CSV ready for Awaken Tax import
 
 ## 📋 CSV Format
@@ -43,25 +44,26 @@ The exported CSV follows Awaken Tax's required format with these columns:
 
 - **Framework**: Next.js 16+ with App Router
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS + Custom CSS
-- **APIs**: 
-  - Blockscout API (primary)
-  - Alchemy RPC (fallback)
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **Theme**: Dark/Light mode support with next-themes
+- **APIs**:
+  - Blockscout API (MegaETH)
+  - Keeta Network REST API (Keeta)
 
 ## ⚡ Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
-- Alchemy API key (free tier works fine)
+- (Optional) Alchemy API key for enhanced features
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/ivaavimusic/Awaken-MegaEth-Wallet-Analyser.git
-   cd Awaken-MegaEth-Wallet-Analyser
+   git clone https://github.com/ivaavimusic/Awaken-Wallet-Analyser.git
+   cd Awaken-Wallet-Analyser
    ```
 
 2. **Install dependencies**
@@ -69,17 +71,17 @@ The exported CSV follows Awaken Tax's required format with these columns:
    npm install
    ```
 
-3. **Configure environment variables**
+3. **Configure environment variables** (optional)
    ```bash
    cp .env.example .env.local
    ```
-   
-   Edit `.env.local` and add your Alchemy API key:
+
+   Edit `.env.local` to add optional Alchemy API key:
    ```env
    NEXT_PUBLIC_ALCHEMY_API_KEY=your_alchemy_api_key_here
    ```
-   
-   > 💡 Get a free API key at [alchemy.com](https://www.alchemy.com/)
+
+   > 💡 The app works without API keys using public endpoints. Get a free Alchemy key at [alchemy.com](https://www.alchemy.com/) for enhanced features.
 
 4. **Start development server**
    ```bash
@@ -101,7 +103,7 @@ npm start
 
 1. Push to GitHub
 2. Import to [Vercel](https://vercel.com)
-3. Add environment variable: `NEXT_PUBLIC_ALCHEMY_API_KEY`
+3. (Optional) Add environment variable: `NEXT_PUBLIC_ALCHEMY_API_KEY`
 4. Deploy!
 
 ### Other Platforms
@@ -114,13 +116,13 @@ The app is a standard Next.js application and can be deployed to any platform th
 
 ## 🔒 Security
 
-- **No API keys in code**: All secrets are stored in environment variables
+- **No API keys required**: Works with public blockchain endpoints
 - **`.env.local` is gitignored**: Your API keys are never committed
 - **Client-side only**: No data is stored on any server
 
-## 📖 API Reference
+## 📖 Supported Networks
 
-### MegaETH Chain Info
+### MegaETH
 
 | Property | Value |
 |----------|-------|
@@ -129,10 +131,14 @@ The app is a standard Next.js application and can be deployed to any platform th
 | Explorer | [megaeth.blockscout.com](https://megaeth.blockscout.com) |
 | Native Token | ETH |
 
-### Blockscout API Endpoints Used
+### Keeta
 
-- `?module=account&action=txlist` - Normal transactions
-- `?module=account&action=tokentx` - Token transfers
+| Property | Value |
+|----------|-------|
+| Network | Mainnet |
+| Explorer | [keeta.network](https://keeta.network) |
+| Native Token | KEETA |
+| Address Format | `keeta_...` |
 
 ## 🤝 Contributing
 
@@ -150,9 +156,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [Awaken Tax](https://awaken.tax) - For the bounty and CSV format specification
-- [MegaETH](https://megaeth.com) - For the blockchain infrastructure
-- [Alchemy](https://alchemy.com) - For the RPC infrastructure
+- [Awaken Tax](https://awaken.tax) - For the CSV format specification
+- [MegaETH](https://megaeth.com) - The first real-time blockchain
+- [Keeta](https://keeta.network) - Designed for real-world payments
 - [Blockscout](https://blockscout.com) - For the explorer API
 
 ---

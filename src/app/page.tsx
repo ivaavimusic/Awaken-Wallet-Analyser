@@ -285,14 +285,14 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <img src="/EHLLOGO.png" alt="EventHorizon Labs" className="h-8 w-auto" />
             <a href="https://ehlabs.xyz" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
-              EventHorizon Labs
+              Built by EventHorizon Labs
             </a>
           </div>
           <div className="flex items-center gap-4">
-            <a href="https://github.com/ivaavimusic/demoGen" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+            <a href="https://github.com/ivaavimusic/Awaken-Wallet-Analyser" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
               Open Source
             </a>
-            <a href="https://github.com/ivaavimusic/demoGen" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+            <a href="https://github.com/ivaavimusic/Awaken-Wallet-Analyser" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
               GitHub
             </a>
           </div>
