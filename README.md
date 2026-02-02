@@ -1,11 +1,12 @@
 # Awaken Wallet Analyzer
 
 <p align="center">
-  <strong>Analyze your MegaETH wallet transactions and export to Awaken Tax CSV format</strong>
+  <strong>Analyze your MegaETH & Keeta wallet transactions and export to Awaken Tax CSV format</strong>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/MegaETH-Chain%20ID%204326-6366f1" alt="MegaETH">
+  <img src="https://img.shields.io/badge/Keeta-Mainnet-f97316" alt="Keeta">
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT">
   <img src="https://img.shields.io/badge/Next.js-16+-black" alt="Next.js">
 </p>
