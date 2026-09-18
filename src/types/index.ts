@@ -52,9 +52,9 @@ export interface BlockscoutTokenTransfer {
 }
 
 /**
- * Awaken Tax CSV row format
+ * tax CSV row format
  */
-export interface AwakenTransaction {
+export interface TaxTransaction {
   Date: string;           // YYYY-MM-DD format
   Asset: string;          // Token symbol (ETH, USDT, etc.)
   Amount: string;         // Transaction amount (can be negative)
@@ -78,9 +78,9 @@ export interface BlockscoutAPIResponse<T> {
 
 /**
  * Combined transaction for display
- * Extends AwakenTransaction with additional fields for UI display
+ * Extends TaxTransaction with additional fields for UI display
  */
-export interface DisplayTransaction extends AwakenTransaction {
+export interface DisplayTransaction extends TaxTransaction {
   timestamp: number;      // Unix timestamp for sorting
   isIncoming: boolean;    // True if receiving, false if sending
   type: TransactionType;  // Transaction type enum

@@ -1,169 +1,185 @@
-# Awaken Wallet Analyzer
+<div align="center">
 
-<p align="center">
-  <strong>Analyze your MegaETH & Keeta wallet transactions and export to Awaken Tax CSV format</strong>
-</p>
+# OpenPort
 
-<p align="center">
-  <img src="https://img.shields.io/badge/MegaETH-Chain%20ID%204326-6366f1" alt="MegaETH">
-  <img src="https://img.shields.io/badge/Keeta-Mainnet-f97316" alt="Keeta">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT">
-  <img src="https://img.shields.io/badge/Next.js-16+-black" alt="Next.js">
-</p>
+**A personal multi-chain portfolio manager that runs entirely in your browser.**
+
+Track what you own across ten networks. No account, no backend, no API key required.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
+![Networks](https://img.shields.io/badge/networks-10-6366f1)
+
+</div>
 
 ---
 
-## 🚀 Features
+![OpenPort portfolio overview](docs/screenshots/portfolio.png)
 
-- **Multi-Chain Support**: Supports both MegaETH and Keeta networks
-- **Transaction Fetching**: Retrieves all transactions from supported blockchains
-- **Awaken Tax Format**: Exports data in the exact CSV format required by [Awaken Tax](https://awaken.tax)
-- **Modern UI**: Premium dark theme with responsive design
-- **Chain Selector**: Switch between MegaETH and Keeta networks
-- **Stats Dashboard**: View total transactions, active days, volume, and gas spent
-- **Daily Activity Chart**: Visual representation of your transaction activity
-- **One-Click Export**: Download CSV ready for Awaken Tax import
+## What it does
 
-## 📋 CSV Format
+Paste in the addresses you want to watch, name them, and OpenPort shows you what they're
+worth — combined, or one wallet at a time.
 
-The exported CSV follows Awaken Tax's required format with these columns:
+- **Total value in USD** across every wallet and chain you've added
+- **Per-asset breakdown** with live prices and logos
+- **NFTs** (ERC-721 / ERC-1155) alongside your tokens
+- **Chain filters** — click a logo to scope the whole page to that network
+- **12-month chart** with a hover readout
+- **Tax export** — pull a wallet's history and download it as CSV
+- **Light and dark** themes
 
-| Column | Description |
-|--------|-------------|
-| Date | Transaction date (YYYY-MM-DD) |
-| Asset | Token symbol (ETH, ERC-20 tokens) |
-| Amount | Transaction amount (+ for incoming, - for outgoing) |
-| Fee | Gas fee paid |
-| P&L | Profit/Loss (if applicable) |
-| Payment Token | Token used for fees |
-| ID | Short transaction ID |
-| Notes | Transaction description |
-| Tag | Transaction type (deposit, withdrawal, contract, etc.) |
-| Transaction Hash | Full transaction hash |
+![Assets and wallets](docs/screenshots/assets-wallets.png)
 
-## 🛠️ Tech Stack
+## Why it's different
 
-- **Framework**: Next.js 16+ with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS + shadcn/ui components
-- **Theme**: Dark/Light mode support with next-themes
-- **APIs**:
-  - Blockscout API (MegaETH)
-  - Keeta Network REST API (Keeta)
+**It costs almost nothing to run.** One `Multicall3` batch per chain covers every token for
+every wallet at once, so cost scales with *how many chains you use*, not how big your
+portfolio is. Prices and token logos arrive in a single CoinGecko call. Refresh is a button,
+never a background poll, and results are cached — reopening the app makes no network calls at
+all. A typical setup sits comfortably inside a free Alchemy tier, or skips Alchemy entirely.
 
-## ⚡ Quick Start
+**It won't lie to you.** A chain that fails to load is shown as failed, never as `$0`. A total
+built from incomplete data says so. Assets without a price show their quantity rather than a
+made-up value. The 12-month chart is honest about being an approximation, and clamps itself to
+the date your wallet first appeared on-chain instead of drawing a year of fiction for a wallet
+you created last week.
 
-### Prerequisites
+**It can't touch your funds.** Addresses only. There is no signing path, no wallet connection,
+and no private key input anywhere in the codebase.
 
-- Node.js 18+
-- npm or yarn
-- (Optional) Alchemy API key for enhanced features
+## Supported networks
 
-### Installation
+| Network | Chain ID | Type | Public RPC works |
+|---|---:|---|:--:|
+| Ethereum | 1 | EVM | ✅ |
+| Robinhood Chain | 4663 | EVM (Arbitrum L2) | ✅ |
+| Base | 8453 | EVM | ✅ |
+| Solana | — | SVM | ✅ |
+| Arbitrum One | 42161 | EVM | ✅ |
+| Hyperliquid HyperEVM | 999 | EVM | ✅ |
+| Tempo | 4217 | EVM | ✅ |
+| MegaETH | 4326 | EVM | ✅ |
+| Blast | 81457 | EVM | ✅ |
+| Keeta | — | custom | ✅ |
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/ivaavimusic/Awaken-Wallet-Analyser.git
-   cd Awaken-Wallet-Analyser
-   ```
+Every endpoint shipped by default was tested from a browser. Endpoints that look healthy but
+send no CORS headers are useless to a client-side app, so they aren't included.
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+> **Note:** Robinhood Chain is Robinhood's Ethereum-compatible L2 for tokenised real-world
+> assets. It is not the Robinhood brokerage, and OpenPort has no connection to any brokerage
+> account.
 
-3. **Configure environment variables** (optional)
-   ```bash
-   cp .env.example .env.local
-   ```
-
-   Edit `.env.local` to add optional Alchemy API key:
-   ```env
-   NEXT_PUBLIC_ALCHEMY_API_KEY=your_alchemy_api_key_here
-   ```
-
-   > 💡 The app works without API keys using public endpoints. Get a free Alchemy key at [alchemy.com](https://www.alchemy.com/) for enhanced features.
-
-4. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-### Production Build
+## Quick start
 
 ```bash
-npm run build
-npm start
+git clone https://github.com/ivaavimusic/Awaken-Wallet-Analyser.git
+cd Awaken-Wallet-Analyser
+npm install
+npm run dev
 ```
 
-## 🌐 Deployment
+Open <http://localhost:3000>, go to **Settings**, and add a wallet address. That's it — no key,
+no signup.
 
-### Vercel (Recommended)
+### Optional: add an Alchemy key
 
-1. Push to GitHub
-2. Import to [Vercel](https://vercel.com)
-3. (Optional) Add environment variable: `NEXT_PUBLIC_ALCHEMY_API_KEY`
-4. Deploy!
+OpenPort works without one. Adding a [free Alchemy key](https://alchemy.com) in **Settings**
+unlocks:
 
-### Other Platforms
+| | Without a key | With a key |
+|---|---|---|
+| Token balances | Major tokens only (curated list) | Every token you hold |
+| Solana SPL tokens | ✗ public nodes refuse the lookup | ✅ |
+| NFTs | ✗ needs an indexer | ✅ |
+| EVM tax export | MegaETH only | All EVM chains |
+| Wallet age (chart clamp) | Solana only | All chains |
 
-The app is a standard Next.js application and can be deployed to any platform that supports Next.js:
-- Netlify
-- Railway
-- AWS Amplify
-- Self-hosted
+If you add a key, enable the networks you want in your [Alchemy
+dashboard](https://dashboard.alchemy.com/) — they're off by default per app, and OpenPort will
+tell you which ones are switched off.
 
-## 🔒 Security
+### Custom RPC endpoints
 
-- **No API keys required**: Works with public blockchain endpoints
-- **`.env.local` is gitignored**: Your API keys are never committed
-- **Client-side only**: No data is stored on any server
+Settings → **RPC endpoints**. Each network has a list you can extend with `+`. Your own
+endpoints are tried first, then Alchemy, then the public fallbacks, with automatic failover
+down the list.
 
-## 📖 Supported Networks
+## How your data is handled
 
-### MegaETH
+Everything lives in your browser's `localStorage`. There is no server, no database, no
+telemetry, and no account.
 
-| Property | Value |
-|----------|-------|
-| Chain ID | 4326 |
-| Network | Mainnet |
-| Explorer | [megaeth.blockscout.com](https://megaeth.blockscout.com) |
-| Native Token | ETH |
+- Wallet addresses, names, RPC endpoints and cached balances stay on your machine
+- **Export/Import JSON** in Settings moves your config between browsers
+- Requests go only to the RPC endpoints and price APIs listed above
 
-### Keeta
+One honest caveat: an Alchemy key in `localStorage` is readable by any script running on the
+page. That's normal for a personal tool on your own machine, but don't paste a key with
+billing scope you care about. Since public RPCs are the default, most people never enter one.
 
-| Property | Value |
-|----------|-------|
-| Network | Mainnet |
-| Explorer | [keeta.network](https://keeta.network) |
-| Native Token | KEETA |
-| Address Format | `keeta_...` |
+## Tax export
 
-## 🤝 Contributing
+The **Tax Export** tab fetches a single wallet's history and downloads it as a CSV with
+`Date, Asset, Amount, Fee, P&L, Payment Token, ID, Notes, Tag, Transaction Hash`.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Solana uses signature history with balance-delta accounting, so swaps and multi-instruction
+transactions come out right. MegaETH uses Blockscout. Other EVM chains use Alchemy's transfer
+API. Where a source doesn't report fees, the UI says "Not reported" rather than showing `0` as
+if you paid no gas.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Tech stack
 
-## 📄 License
+Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui ·
+viem · CoinGecko · Alchemy (optional)
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Deploying
 
-## 🙏 Acknowledgments
+It's a static Next.js app — any host works.
 
-- [Awaken Tax](https://awaken.tax) - For the CSV format specification
-- [MegaETH](https://megaeth.com) - The first real-time blockchain
-- [Keeta](https://keeta.network) - Designed for real-world payments
-- [Blockscout](https://blockscout.com) - For the explorer API
+```bash
+npm run build && npm start
+```
 
----
+For Vercel: import the repo and deploy. No environment variables are needed; keys are entered
+by each user in their own browser.
 
-<p align="center">
-  Built with ❤️ by <a href="https://github.com/ivaavimusic">Event Horizon Labs</a>
-</p>
+## Contributing
+
+Issues and pull requests are welcome.
+
+**Adding a network** is usually a single entry in [`src/lib/chains.ts`](src/lib/chains.ts). If
+it's EVM with Multicall3 deployed, balances work immediately. Please verify the public RPC is
+callable from a browser (CORS) before adding it — an endpoint that only works from `curl`
+doesn't help here.
+
+```bash
+npm run dev       # dev server
+npm run build     # production build
+npm run lint      # eslint
+npx tsc --noEmit  # typecheck
+```
+
+## Known limitations
+
+These are real, and deliberately visible in the UI rather than hidden:
+
+- **The chart is an approximation.** It values *today's* holdings at past prices, so it ignores
+  every historical buy, sell and transfer. Real totals are recorded on each refresh and
+  overlaid as dots, so accuracy improves the longer you use it.
+- **Keeta balances** aren't in the portfolio yet — Keeta works in Tax Export only.
+- **Tempo's native asset is unpriced.** Its gas token isn't clearly documented, so it shows a
+  quantity rather than an invented value.
+- **Solana NFTs** aren't supported yet (that needs Alchemy's DAS API).
+- **NFTs are capped** at 100 per wallet per chain.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+<div align="center">
+
+Built by [EventHorizon Labs](https://ehlabs.xyz)
+
+</div>

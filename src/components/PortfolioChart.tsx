@@ -7,7 +7,7 @@ import { ChartPoint } from '@/lib/portfolio';
 import { Snapshot } from '@/lib/settings';
 
 const W = 900;
-const H = 130;
+const H = 220;
 
 interface PortfolioChartProps {
     points: ChartPoint[];
@@ -90,8 +90,8 @@ export function PortfolioChart({
     const active = hover !== null ? points[hover] : null;
 
     return (
-        <Card className="p-5 border-0 bg-card text-card-foreground">
-            <div className="flex items-start justify-between mb-2">
+        <Card className="p-6 border-0 bg-card text-card-foreground">
+            <div className="flex items-start justify-between mb-4">
                 <div>
                     <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
                         <span>{rangeLabel}</span>
@@ -102,7 +102,7 @@ export function PortfolioChart({
                             <Info className="w-3.5 h-3.5" />
                         </span>
                     </div>
-                    <div className="text-xl font-bold tracking-tight mt-0.5">
+                    <div className="text-2xl font-bold tracking-tight mt-1">
                         {active ? money(active.usd) : money(last)}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5 h-4">
@@ -131,7 +131,7 @@ export function PortfolioChart({
                 </div>
             </div>
 
-            <div className="relative w-full h-[130px]">
+            <div className="relative w-full h-[220px]">
                 {loading ? (
                     <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
                         Loading price history…
@@ -209,7 +209,7 @@ export function PortfolioChart({
                                 title={`Recorded ${money(d.usd)} on ${new Date(
                                     d.t,
                                 ).toLocaleDateString()}`}
-                                className="absolute w-2 h-2 rounded-full bg-primary ring-2 ring-[var(--card)] -translate-x-1/2 -translate-y-1/2"
+                                className="absolute w-1.5 h-1.5 rounded-full bg-primary ring-1 ring-[var(--card)] -translate-x-1/2 -translate-y-1/2"
                                 style={{
                                     left: `${(d.cx / W) * 100}%`,
                                     top: `${(d.cy / H) * 100}%`,
@@ -219,7 +219,7 @@ export function PortfolioChart({
 
                         {hover !== null && points[hover] && (
                             <span
-                                className="absolute w-3 h-3 rounded-full bg-primary ring-2 ring-[var(--card)] shadow-sm -translate-x-1/2 -translate-y-1/2"
+                                className="absolute w-1.5 h-1.5 rounded-full bg-primary ring-1 ring-[var(--card)] -translate-x-1/2 -translate-y-1/2"
                                 style={{
                                     left: `${(geo.x(hover) / W) * 100}%`,
                                     top: `${(geo.y(points[hover].usd) / H) * 100}%`,
@@ -230,7 +230,7 @@ export function PortfolioChart({
                 )}
             </div>
 
-            <p className="text-[10px] leading-snug text-muted-foreground/80 mt-2">
+            <p className="text-[11px] leading-relaxed text-muted-foreground mt-3">
                 Current holdings valued at historical prices — not true historical
                 portfolio value. Past buys, sells and transfers are not reflected.
                 Dots mark real totals recorded on each refresh.

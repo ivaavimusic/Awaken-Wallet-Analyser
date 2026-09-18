@@ -18,6 +18,7 @@ import { resolveRpcs } from '@/lib/rpc';
 import { fetchAlchemyTransfers, fetchBlockscoutTransfers } from '@/lib/transfers';
 import { loadSettings } from '@/lib/settings';
 import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
 import { ChainLogo } from '@/components/ChainLogo';
 import { StatsGrid } from '@/components/StatsGrid';
 import { DisplayTransaction } from '@/types';
@@ -214,7 +215,7 @@ export default function TaxExportPage() {
                         Tax Export
                     </h1>
                     <p className="text-sm text-muted-foreground mb-4">
-                        Fetch a wallet&apos;s history and download it in Awaken Tax CSV
+                        Fetch a wallet&apos;s history and download it in tax CSV
                         format.
                     </p>
 
@@ -429,6 +430,8 @@ export default function TaxExportPage() {
                         </div>
                     </Card>
                 )}
+
+                <Footer />
             </main>
         </div>
     );

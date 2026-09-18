@@ -1,11 +1,11 @@
-// CSV Generation Utilities for Awaken Tax format
+// CSV Generation Utilities for tax format
 
-import { DisplayTransaction, AwakenTransaction } from '@/types';
+import { DisplayTransaction, TaxTransaction } from '@/types';
 
 /**
- * Awaken CSV column headers in exact order
+ * tax CSV column headers in exact order
  */
-export const AWAKEN_CSV_HEADERS = [
+export const TAX_CSV_HEADERS = [
     'Date',
     'Asset',
     'Amount',
@@ -35,9 +35,9 @@ function escapeCSVValue(value: string): string {
 }
 
 /**
- * Convert DisplayTransaction to AwakenTransaction (remove extra fields)
+ * Convert DisplayTransaction to TaxTransaction (remove extra fields)
  */
-function toAwakenFormat(tx: DisplayTransaction): AwakenTransaction {
+function toTaxFormat(tx: DisplayTransaction): TaxTransaction {
     return {
         Date: tx.Date,
         Asset: tx.Asset,
@@ -53,18 +53,18 @@ function toAwakenFormat(tx: DisplayTransaction): AwakenTransaction {
 }
 
 /**
- * Generate a CSV row from an Awaken transaction
+ * Generate a CSV row from a tax transaction
  */
-function generateRow(tx: AwakenTransaction): string {
-    return AWAKEN_CSV_HEADERS.map(header => escapeCSVValue(tx[header])).join(',');
+function generateRow(tx: TaxTransaction): string {
+    return TAX_CSV_HEADERS.map(header => escapeCSVValue(tx[header])).join(',');
 }
 
 /**
  * Generate complete CSV string from transactions
  */
 export function generateCSV(transactions: DisplayTransaction[]): string {
-    const headerRow = AWAKEN_CSV_HEADERS.join(',');
-    const dataRows = transactions.map(tx => generateRow(toAwakenFormat(tx)));
+    const headerRow = TAX_CSV_HEADERS.join(',');
+    const dataRows = transactions.map(tx => generateRow(toTaxFormat(tx)));
 
     return [headerRow, ...dataRows].join('\n');
 }

@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
 import { ChainLogo } from '@/components/ChainLogo';
 import { getSupportedChains, alchemyRpcUrl } from '@/lib/chains';
 import { resolveRpcs } from '@/lib/rpc';
@@ -45,9 +46,13 @@ export default function SettingsPage() {
     const [saved, setSaved] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
 
+    // Settings live in localStorage, which does not exist during SSR, so they
+    // can only be read once the component is mounted on the client.
     useEffect(() => {
+        /* eslint-disable react-hooks/set-state-in-effect */
         setSettings(loadSettings());
         setReady(true);
+        /* eslint-enable react-hooks/set-state-in-effect */
     }, []);
 
     /** Persist immediately — settings are small and edits are deliberate. */
@@ -447,6 +452,8 @@ export default function SettingsPage() {
                         />
                     </div>
                 </Card>
+
+                <Footer />
             </main>
         </div>
     );

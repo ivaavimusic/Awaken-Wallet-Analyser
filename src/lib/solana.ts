@@ -109,7 +109,7 @@ export async function fetchSolanaBalances(
 }
 
 /* ------------------------------------------------------------------ *
- * Transaction history for the Awaken tax export.
+ * Transaction history for the tax export.
  * ------------------------------------------------------------------ */
 
 interface SignatureEntry {

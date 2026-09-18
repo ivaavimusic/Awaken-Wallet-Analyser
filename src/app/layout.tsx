@@ -11,7 +11,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "OpenPort | Multi-chain portfolio manager",
   description: "Open-source personal portfolio manager for Ethereum, Base, Robinhood Chain, Solana, MegaETH and Keeta. Runs on public RPCs, stores everything in your browser.",
-  keywords: ["portfolio", "Ethereum", "Base", "Robinhood Chain", "Solana", "MegaETH", "Keeta", "wallet", "crypto", "Awaken", "tax", "CSV"],
+  keywords: ["portfolio", "Ethereum", "Base", "Robinhood Chain", "Solana", "MegaETH", "Keeta", "wallet", "crypto", "tax export", "tax", "CSV"],
   authors: [{ name: "Event Horizon Labs" }],
   icons: {
     icon: [

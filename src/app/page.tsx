@@ -35,6 +35,7 @@ import { getScopeFirstSeen } from '@/lib/firstseen';
 import { TokenLogo } from '@/components/TokenLogo';
 import { WalletAvatar } from '@/components/WalletAvatar';
 import { NftGrid } from '@/components/NftGrid';
+import { Footer } from '@/components/Footer';
 import { loadNfts, NftResult } from '@/lib/nfts';
 
 const money = (n: number) =>
@@ -594,32 +595,7 @@ export default function PortfolioPage() {
                 )}
 
                 <div className="flex-1" />
-
-                <footer className="mt-8 py-6 border-t border-border/10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                        <img
-                            src="/EHLLOGO.png"
-                            alt="EventHorizon Labs"
-                            className="h-8 w-auto"
-                        />
-                        <a
-                            href="https://ehlabs.xyz"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-medium text-primary hover:underline"
-                        >
-                            Built by EventHorizon Labs
-                        </a>
-                    </div>
-                    <a
-                        href="https://github.com/ivaavimusic/Awaken-Wallet-Analyser"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-foreground transition-colors"
-                    >
-                        Open Source
-                    </a>
-                </footer>
+                <Footer />
             </main>
         </div>
     );

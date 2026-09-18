@@ -1,12 +1,12 @@
-# Bunny Portfolio — Design
+# OpenPort — Design
 
 **Date:** 2026-09-18
 **Status:** Approved
-**Supersedes:** the MegaETH/Keeta-only "Awaken Wallet Analyzer" product framing
+**Supersedes:** the MegaETH/Keeta-only wallet-analyser product framing
 
 ## 1. Summary
 
-Convert this repo from a single-purpose Awaken Tax CSV exporter into **Bunny Portfolio**, an
+Convert this repo from a single-purpose tax CSV exporter into **OpenPort**, an
 open-source personal multi-chain portfolio manager. The existing tax-export analyser survives
 unchanged as a secondary tab.
 
@@ -27,12 +27,12 @@ Hard constraints set by the owner:
 3. Overview: total USD value, then per-asset aggregate (USDC, USDT, ETH, SOL, …) across all wallets.
 4. Filter the whole view by clicking chain logos.
 5. A 12-month value chart.
-6. Keep the Awaken tax-export flow, and extend it to the new chains.
+6. Keep the tax-export flow, and extend it to the new chains.
 
 ## 3. Non-goals
 
 - Trading, swapping, or any write/signing path. Read-only, addresses only, never a private key.
-- Tax-lot accounting or cost basis beyond what the existing Awaken CSV already does.
+- Tax-lot accounting or cost basis beyond what the existing tax CSV already does.
 - Real-time streaming, websockets, or background polling.
 - Accounts, login, or cross-device sync.
 - NFT valuation.
@@ -217,7 +217,7 @@ together. All existing shadcn components and the current theme are reused — no
 
 Today's analyser moves to `/tax` with behaviour unchanged: one chain, one address, fetch, table,
 Download CSV. It gains Ethereum, Base, Robinhood Chain and Solana through the shared adapters. The
-Awaken 10-column schema and `csv.ts` are untouched.
+tax export 10-column schema and `csv.ts` are untouched.
 
 ## 12. Error handling
 
@@ -241,13 +241,13 @@ is — not E2E.
 - Chart math — `Σ(qty × price(day))`, sparse days, empty portfolio.
 - `settings.ts` — schema migration, export/import round-trip.
 - `tokenlist.ts` / `evm.ts` — multicall encode/decode against recorded fixtures.
-- `csv.ts` — existing Awaken output must not regress.
+- `csv.ts` — existing tax export output must not regress.
 
 Network layers are tested against recorded fixtures, not live endpoints.
 
 ## 14. Repo rename
 
-`awaken-megaeth-wallet-analyser` → **`bunny-portfolio`**, in `package.json`, README, and the GitHub
+The package and repo are renamed to **`openport`**, in `package.json`, README, and the GitHub
 repo name. README is rewritten around the portfolio manager, with tax export documented as a
 secondary feature.
 

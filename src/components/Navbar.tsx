@@ -18,6 +18,9 @@ export function Navbar({ children }: { children?: React.ReactNode }) {
     const [mounted, setMounted] = useState(false);
     const pathname = usePathname();
 
+    // localStorage-backed theme is unknown during SSR, so the icon can only be
+    // resolved after mount. The cascading render is one cheap pass, by design.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => setMounted(true), []);
     const isDark = theme === 'dark';
 

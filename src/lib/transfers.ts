@@ -1,4 +1,4 @@
-// Transaction history for the Awaken tax export.
+// Transaction history for the tax export.
 //
 // Blockscout covers MegaETH. Everything else EVM goes through Alchemy's
 // alchemy_getAssetTransfers, which needs a key — there is no keyless way to
