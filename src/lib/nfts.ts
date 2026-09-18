@@ -56,6 +56,24 @@ function writeCache(settings: Settings, data: NftResult): void {
     }
 }
 
+/**
+ * Drop every derived cache — prices, token metadata, NFTs, wallet age.
+ * Settings themselves (wallets, key, endpoints) are never touched.
+ */
+export function clearDerivedCaches(): void {
+    if (typeof window === 'undefined') return;
+    try {
+        Object.keys(window.localStorage)
+            .filter(
+                (k) =>
+                    k.startsWith('openport-') && k !== 'openport',
+            )
+            .forEach((k) => window.localStorage.removeItem(k));
+    } catch {
+        /* non-fatal */
+    }
+}
+
 /** Drop every cached NFT result, so the next open refetches. */
 export function clearNftCache(): void {
     if (typeof window === 'undefined') return;

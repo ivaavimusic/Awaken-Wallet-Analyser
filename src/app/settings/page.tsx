@@ -12,7 +12,6 @@ import { resolveRpcs } from '@/lib/rpc';
 import {
     loadSettings,
     saveSettings,
-    addWallet,
     removeWallet,
     renameWallet,
     addRpc,

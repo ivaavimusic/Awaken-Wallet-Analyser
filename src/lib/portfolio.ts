@@ -185,7 +185,7 @@ export async function loadPortfolio(
                     const notes: string[] = [];
                     if (sol.balanceFailures > 0) {
                         notes.push(
-                            `${sol.balanceFailures} wallet${sol.balanceFailures === 1 ? '' : 's'} could not be read — the endpoint rate limited us. Press Refresh to retry.`,
+                            'Balances could not be read — every endpoint refused or rate limited us. Press Refresh to retry.',
                         );
                     }
                     if (sol.tokensUnavailable) {

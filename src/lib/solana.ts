@@ -35,7 +35,7 @@ interface TokenAccountsResponse {
 
 export interface SolanaResult {
     balances: RawBalance[];
-    /** Wallets whose native balance could not be read at all. */
+    /** Non-zero when the batched native balance read failed outright. */
     balanceFailures: number;
     /**
      * True when native SOL was read but SPL discovery was refused. Free public
@@ -86,7 +86,9 @@ export async function fetchSolanaBalances(
             });
         });
     } catch {
-        balanceFailures = solWallets.length;
+        // One batched request covers every wallet, so this is a single
+        // failure — not one per wallet.
+        balanceFailures = 1;
     }
 
     for (const w of solWallets) {

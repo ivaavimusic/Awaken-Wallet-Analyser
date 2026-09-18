@@ -6,7 +6,6 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/Navbar';
 import { ChainFilter } from '@/components/ChainFilter';
-import { ChainLogo } from '@/components/ChainLogo';
 import { ChainBadgeRow } from '@/components/ChainBadgeRow';
 import { PortfolioChart } from '@/components/PortfolioChart';
 import { getChainGroups, groupChainIds, CHAINS } from '@/lib/chains';
@@ -26,7 +25,7 @@ import {
     PortfolioResult,
     ChartPoint,
 } from '@/lib/portfolio';
-import { AlertTriangle, Check, ChevronDown, Layers, RefreshCw, Wallet as WalletIcon, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronsDown, Layers, RefreshCw, Wallet as WalletIcon } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -40,7 +39,8 @@ import { TokenLogo } from '@/components/TokenLogo';
 import { WalletAvatar } from '@/components/WalletAvatar';
 import { NftGrid } from '@/components/NftGrid';
 import { Footer } from '@/components/Footer';
-import { loadNfts, clearNftCache, NftResult } from '@/lib/nfts';
+import { loadNfts, clearNftCache, clearDerivedCaches, NftResult } from '@/lib/nfts';
+import { toast } from 'sonner';
 
 const money = (n: number) =>
     n.toLocaleString('en-US', {
@@ -74,7 +74,6 @@ export default function PortfolioPage() {
     const [flatShare, setFlatShare] = useState(0);
     const [loading, setLoading] = useState(false);
     const [chartLoading, setChartLoading] = useState(false);
-    const [error, setError] = useState('');
     const [selected, setSelected] = useState<string[]>([]);
     /** Empty = every wallet combined. */
     const [walletIds, setWalletIds] = useState<string[]>([]);
@@ -87,31 +86,50 @@ export default function PortfolioPage() {
     const [assetTab, setAssetTab] = useState<'tokens' | 'nfts'>('tokens');
     const [nfts, setNfts] = useState<NftResult | null>(null);
     const [nftsLoading, setNftsLoading] = useState(false);
-    /** Warnings the user has dismissed; a refresh brings them back if still true. */
-    const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
         setSettings(loadSettings());
     }, []);
 
     const refresh = useCallback(
-        async (s: Settings) => {
+        async (s: Settings, hard = false) => {
             if (s.wallets.length === 0) {
                 setData(null);
                 setChart([]);
                 return;
             }
             setLoading(true);
-            setError('');
-            // An explicit refresh means "get me current data", which includes
-            // NFTs the next time that tab is opened.
-            clearNftCache();
+            if (hard) {
+                // Re-scan everything, including work already done: prices,
+                // token metadata, NFTs and wallet ages all go.
+                clearDerivedCaches();
+            } else {
+                // Balances are always read fresh; only NFTs would otherwise
+                // stay stale behind their own cache.
+                clearNftCache();
+            }
             setNfts(null);
             try {
                 const result = await loadPortfolio(s);
                 setData(result);
                 setStale(false);
-                setDismissed(false);
+
+                // One toast per unhappy chain keeps the page itself clean.
+                for (const p of result.chainStatus) {
+                    if (p.state === 'ok' || !p.message) continue;
+                    const name = CHAINS[p.chainId]?.name ?? p.chainId;
+                    if (p.state === 'failed' || p.state === 'unreachable') {
+                        toast.error(name, { description: p.message });
+                    } else {
+                        toast.warning(name, { description: p.message });
+                    }
+                }
+                if (result.incomplete) {
+                    toast.warning('Total is incomplete', {
+                        description:
+                            'Some chains could not be read, so their balances are missing.',
+                    });
+                }
 
                 // Persist the result so reopening the app costs no RPC calls,
                 // and record a real snapshot of the true total.
@@ -125,7 +143,10 @@ export default function PortfolioPage() {
                 // The chart is rebuilt by the filter effect, which knows the
                 // active wallet/chain scope.
             } catch (e) {
-                setError(e instanceof Error ? e.message : 'Failed to load portfolio');
+                toast.error('Could not load portfolio', {
+                    description:
+                        e instanceof Error ? e.message : 'Unknown error',
+                });
             } finally {
                 setLoading(false);
             }
@@ -268,7 +289,6 @@ export default function PortfolioPage() {
         }
         return totals;
     }, [data, settings]);
-    const problems = data?.chainStatus.filter((c) => c.state !== 'ok') ?? [];
     const hasWallets = (settings?.wallets.length ?? 0) > 0;
 
     return (
@@ -446,17 +466,70 @@ export default function PortfolioPage() {
                                     </DropdownMenuContent>
                                 </DropdownMenu>
 
-                                <Button
-                                    onClick={() => settings && refresh(settings)}
-                                    disabled={loading}
-                                    variant="outline"
-                                    className="gap-2 cursor-pointer"
-                                >
-                                    <RefreshCw
-                                        className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
-                                    />
-                                    {loading ? 'Refreshing…' : 'Refresh'}
-                                </Button>
+                                {/* Split button: refresh, or re-scan everything. */}
+                                <div className="flex items-center">
+                                    <Button
+                                        onClick={() => settings && refresh(settings)}
+                                        disabled={loading}
+                                        variant="outline"
+                                        className="gap-2 cursor-pointer rounded-r-none border-r-0"
+                                    >
+                                        <RefreshCw
+                                            className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+                                        />
+                                        {loading ? 'Refreshing…' : 'Refresh'}
+                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                disabled={loading}
+                                                aria-label="More refresh options"
+                                                className="cursor-pointer rounded-l-none"
+                                            >
+                                                <ChevronDown className="w-4 h-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                            align="end"
+                                            className="w-72 bg-card border-border/50"
+                                        >
+                                            <DropdownMenuItem
+                                                onClick={() =>
+                                                    settings && refresh(settings)
+                                                }
+                                                className="flex-col items-start gap-0.5 py-2 cursor-pointer"
+                                            >
+                                                <span className="font-medium">
+                                                    Refresh
+                                                </span>
+                                                <span className="text-[11px] text-muted-foreground">
+                                                    Re-read balances. Keeps prices,
+                                                    token names and NFT results
+                                                    already fetched.
+                                                </span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                onClick={() =>
+                                                    settings && refresh(settings, true)
+                                                }
+                                                className="flex-col items-start gap-0.5 py-2 cursor-pointer"
+                                            >
+                                                <span className="font-medium flex items-center gap-1.5">
+                                                    <ChevronsDown className="w-3.5 h-3.5" />
+                                                    Hard refresh
+                                                </span>
+                                                <span className="text-[11px] text-muted-foreground">
+                                                    Clear every cache and scan from
+                                                    scratch. Slower and uses more
+                                                    requests.
+                                                </span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                             </div>
                         </div>
 
@@ -467,50 +540,6 @@ export default function PortfolioPage() {
                             onClear={() => setSelected([])}
                             status={data?.chainStatus}
                         />
-
-                        {error && (
-                            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-700 dark:text-red-300 flex items-start gap-3">
-                                <span className="flex-1">{error}</span>
-                                <button
-                                    onClick={() => setError('')}
-                                    aria-label="Dismiss"
-                                    className="opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-
-                        {problems.length > 0 && !dismissed && (
-                            <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                                <div className="flex items-start gap-3">
-                                    <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                                    <div className="text-sm text-amber-800 dark:text-amber-200 space-y-1">
-                                        {data?.incomplete && (
-                                            <p className="font-medium">
-                                                This total is incomplete — some chains
-                                                could not be read.
-                                            </p>
-                                        )}
-                                        {problems.map((p) => (
-                                            <p key={p.chainId}>
-                                                <span className="font-medium">
-                                                    {CHAINS[p.chainId]?.name ?? p.chainId}:
-                                                </span>{' '}
-                                                {p.message}
-                                            </p>
-                                        ))}
-                                    </div>
-                                    <button
-                                        onClick={() => setDismissed(true)}
-                                        aria-label="Dismiss warnings"
-                                        className="text-amber-700 dark:text-amber-300 opacity-60 hover:opacity-100 transition-opacity cursor-pointer shrink-0"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
 
                         <PortfolioChart
                             points={chart}
@@ -555,10 +584,10 @@ export default function PortfolioPage() {
                                     walletIds={walletIds}
                                 />
                             ) : (
-                            <div className="px-4 pb-2 overflow-x-auto">
+                            <div className="px-4 pb-2 overflow-x-auto overflow-y-auto max-h-[460px]">
                                 <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-border/10 text-muted-foreground">
+                                    <thead className="sticky top-0 z-10 bg-card">
+                                        <tr className="border-b border-border/10 text-muted-foreground bg-card">
                                             <th className="h-10 px-2 text-left font-medium">
                                                 Asset
                                             </th>
@@ -635,10 +664,10 @@ export default function PortfolioPage() {
                                     Manage
                                 </Link>
                             </div>
-                            <div className="px-4 pb-2 overflow-x-auto">
+                            <div className="px-4 pb-2 overflow-x-auto overflow-y-auto max-h-[460px]">
                                 <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-border/10 text-muted-foreground">
+                                    <thead className="sticky top-0 z-10 bg-card">
+                                        <tr className="border-b border-border/10 text-muted-foreground bg-card">
                                             <th className="h-10 px-2 text-left font-medium">
                                                 Name
                                             </th>
