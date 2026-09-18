@@ -181,13 +181,25 @@ export async function loadPortfolio(
                 if (chain.kind === 'svm') {
                     const sol = await fetchSolanaBalances(chain, urls, wallets);
                     balances.push(...sol.balances);
+
+                    const notes: string[] = [];
+                    if (sol.balanceFailures > 0) {
+                        notes.push(
+                            `${sol.balanceFailures} wallet${sol.balanceFailures === 1 ? '' : 's'} could not be read — the endpoint rate limited us. Press Refresh to retry.`,
+                        );
+                    }
+                    if (sol.tokensUnavailable) {
+                        notes.push(
+                            'SPL token lookups were refused, so only native SOL is shown for the affected wallets.',
+                        );
+                    }
+
                     chainStatus.push(
-                        sol.tokensUnavailable
+                        notes.length > 0
                             ? {
                                   chainId: chain.id,
                                   state: 'degraded',
-                                  message:
-                                      'Native SOL only — public endpoints refuse SPL token lookups. Add an Alchemy key to see your tokens.',
+                                  message: notes.join(' '),
                               }
                             : { chainId: chain.id, state: 'ok' },
                     );

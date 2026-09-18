@@ -35,6 +35,8 @@ interface TokenAccountsResponse {
 
 export interface SolanaResult {
     balances: RawBalance[];
+    /** Wallets whose native balance could not be read at all. */
+    balanceFailures: number;
     /**
      * True when native SOL was read but SPL discovery was refused. Free public
      * endpoints block getTokenAccountsByOwner, so this is the normal keyless
@@ -50,7 +52,7 @@ export async function fetchSolanaBalances(
 ): Promise<SolanaResult> {
     const solWallets = wallets.filter((w) => w.kind === 'svm');
     if (solWallets.length === 0) {
-        return { balances: [], tokensUnavailable: false };
+        return { balances: [], tokensUnavailable: false, balanceFailures: 0 };
     }
 
     const out: RawBalance[] = [];
@@ -61,20 +63,29 @@ export async function fetchSolanaBalances(
         amount: bigint;
     }[] = [];
     let tokensUnavailable = false;
+    let balanceFailures = 0;
 
     for (const w of solWallets) {
-        // Native SOL.
-        const lamports = await jsonRpc<{ value: number }>(urls, 'getBalance', [
-            w.address,
-        ]);
-        out.push({
-            chainId: chain.id,
-            walletId: w.id,
-            symbol: chain.nativeSymbol,
-            decimals: chain.nativeDecimals,
-            amount: BigInt(lamports?.value ?? 0),
-            coingeckoId: chain.coingeckoId,
-        });
+        // Native SOL. One rate-limited wallet must not take the whole chain
+        // down with it — public Solana endpoints 403 under load, and losing
+        // every other wallet's balance to that is far worse than losing one.
+        try {
+            const lamports = await jsonRpc<{ value: number }>(
+                urls,
+                'getBalance',
+                [w.address],
+            );
+            out.push({
+                chainId: chain.id,
+                walletId: w.id,
+                symbol: chain.nativeSymbol,
+                decimals: chain.nativeDecimals,
+                amount: BigInt(lamports?.value ?? 0),
+                coingeckoId: chain.coingeckoId,
+            });
+        } catch {
+            balanceFailures++;
+        }
 
         // Every SPL token held. Refusal here costs us tokens, not the chain.
         let accounts: TokenAccountsResponse | null = null;
@@ -128,7 +139,7 @@ export async function fetchSolanaBalances(
         });
     }
 
-    return { balances: out, tokensUnavailable };
+    return { balances: out, tokensUnavailable, balanceFailures };
 }
 
 /* ------------------------------------------------------------------ *
