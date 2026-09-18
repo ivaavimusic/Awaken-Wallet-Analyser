@@ -87,6 +87,14 @@ export function Footer() {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <a
+                        href="https://openport.ehlabs.xyz"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-foreground transition-colors"
+                    >
+                        openport.ehlabs.xyz
+                    </a>
                     <span>MIT licensed</span>
                     <a
                         href={REPO}

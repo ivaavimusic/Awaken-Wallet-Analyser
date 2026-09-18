@@ -9,6 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://openport.ehlabs.xyz"),
   title: "OpenPort | Multi-chain portfolio manager",
   description: "Open-source personal portfolio manager for Ethereum, Base, Robinhood Chain, Solana, MegaETH and Keeta. Runs on public RPCs, stores everything in your browser.",
   keywords: ["portfolio", "Ethereum", "Base", "Robinhood Chain", "Solana", "MegaETH", "Keeta", "wallet", "crypto", "tax export", "tax", "CSV"],
@@ -25,10 +26,20 @@ export const metadata: Metadata = {
   },
   manifest: "/favicon_io/site.webmanifest",
   openGraph: {
-    title: "OpenPort",
-    description: "Open-source personal multi-chain portfolio manager.",
+    title: "OpenPort | Multi-chain portfolio manager",
+    description:
+      "Track what you own across ten networks. No account, no backend, no API key required.",
+    url: "https://openport.ehlabs.xyz",
+    siteName: "OpenPort",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "OpenPort | Multi-chain portfolio manager",
+    description:
+      "Track what you own across ten networks. No account, no backend, no API key required.",
+  },
+  alternates: { canonical: "https://openport.ehlabs.xyz" },
 };
 
 export default function RootLayout({

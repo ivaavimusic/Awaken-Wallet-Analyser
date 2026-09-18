@@ -6,6 +6,8 @@
 
 Track what you own across ten networks. No account, no backend, no API key required.
 
+**[→ Try it live at openport.ehlabs.xyz](https://openport.ehlabs.xyz)**
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
@@ -83,6 +85,10 @@ npm run dev
 Open <http://localhost:3000>, go to **Settings**, and add a wallet address. That's it — no key,
 no signup.
 
+Prefer not to run it yourself? The same build is hosted at
+**<https://openport.ehlabs.xyz>** — it's the identical client-side app, so your
+wallets and keys still never leave your own browser.
+
 ### Optional: add an Alchemy key
 
 OpenPort works without one. Adding a [free Alchemy key](https://alchemy.com) in **Settings**
@@ -144,6 +150,8 @@ npm run build && npm start
 
 For Vercel: import the repo and deploy. No environment variables are needed; keys are entered
 by each user in their own browser.
+
+The official instance runs at <https://openport.ehlabs.xyz>.
 
 ## Contributing
 
