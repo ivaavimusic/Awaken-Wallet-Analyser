@@ -146,6 +146,12 @@ export function NftGrid({
                 </p>
             )}
 
+            {result?.fromCache && result.items.length > 0 && (
+                <p className="text-[11px] text-muted-foreground mb-2">
+                    Cached — press Refresh to fetch these again.
+                </p>
+            )}
+
             {result?.truncated && (
                 <p className="text-[11px] text-muted-foreground mb-3">
                     Showing the first {PAGE_LIMIT} per wallet per chain — some

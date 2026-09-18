@@ -11,6 +11,63 @@
 import { ChainConfig, getSupportedChains } from './chains';
 import { Settings, Wallet } from './settings';
 
+/*
+ * NFTs are the most expensive thing this app does: one request per wallet per
+ * chain, with no batching available, across every supported EVM network. A
+ * couple of wallets is a dozen-plus requests, so the result is cached and only
+ * refetched when it expires or the user explicitly refreshes.
+ */
+const CACHE_PREFIX = 'openport-nfts:';
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+/** Key the cache on what would change the answer: the wallets and the key. */
+function cacheKey(settings: Settings): string {
+    const addrs = settings.wallets
+        .filter((w) => w.kind === 'evm')
+        .map((w) => w.address.toLowerCase())
+        .sort()
+        .join(',');
+    return `${CACHE_PREFIX}${settings.alchemyKey ? 'k' : 'nokey'}:${addrs}`;
+}
+
+function readCache(settings: Settings): NftResult | null {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = window.localStorage.getItem(cacheKey(settings));
+        if (!raw) return null;
+        const c = JSON.parse(raw) as { at: number; data: NftResult };
+        if (Date.now() - c.at > CACHE_TTL_MS) return null;
+        return c.data;
+    } catch {
+        return null;
+    }
+}
+
+function writeCache(settings: Settings, data: NftResult): void {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.setItem(
+            cacheKey(settings),
+            JSON.stringify({ at: Date.now(), data }),
+        );
+    } catch {
+        // A large collection can exceed the storage quota. Losing the cache is
+        // a slow refetch, not a broken app, so this stays silent.
+    }
+}
+
+/** Drop every cached NFT result, so the next open refetches. */
+export function clearNftCache(): void {
+    if (typeof window === 'undefined') return;
+    try {
+        Object.keys(window.localStorage)
+            .filter((k) => k.startsWith(CACHE_PREFIX))
+            .forEach((k) => window.localStorage.removeItem(k));
+    } catch {
+        /* non-fatal */
+    }
+}
+
 export interface NftItem {
     chainId: string;
     walletId: string;
@@ -47,6 +104,10 @@ export interface NftResult {
     needsKey: boolean;
     /** True when a wallet holds more than one page and we stopped early. */
     truncated: boolean;
+    /** True when these results were restored rather than refetched. */
+    fromCache?: boolean;
+    /** When the underlying data was fetched. */
+    fetchedAt?: number;
 }
 
 interface AlchemyNft {
@@ -149,9 +210,17 @@ async function fetchChainNfts(
     return { items: out, truncated };
 }
 
-export async function loadNfts(settings: Settings): Promise<NftResult> {
+export async function loadNfts(
+    settings: Settings,
+    { force = false }: { force?: boolean } = {},
+): Promise<NftResult> {
     const key = settings.alchemyKey;
     const evmWallets = settings.wallets.filter((w) => w.kind === 'evm');
+
+    if (!force) {
+        const cached = readCache(settings);
+        if (cached) return { ...cached, fromCache: true };
+    }
 
     if (!key) {
         return { items: [], problems: [], needsKey: true, truncated: false };
@@ -194,5 +263,18 @@ export async function loadNfts(settings: Settings): Promise<NftResult> {
             a.tokenId.localeCompare(b.tokenId),
     );
 
-    return { items, problems, needsKey: false, truncated };
+    const result: NftResult = {
+        items,
+        problems,
+        needsKey: false,
+        truncated,
+        fetchedAt: Date.now(),
+    };
+    // 'disabled' and 'unsupported' are stable facts about the account and the
+    // chain, so they are safe to cache. Only a transient 'error' is withheld,
+    // since pinning that for six hours would hide a chain that recovers.
+    if (!problems.some((p) => p.kind === 'error')) {
+        writeCache(settings, result);
+    }
+    return result;
 }

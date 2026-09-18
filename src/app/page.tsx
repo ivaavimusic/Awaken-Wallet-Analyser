@@ -36,7 +36,7 @@ import { TokenLogo } from '@/components/TokenLogo';
 import { WalletAvatar } from '@/components/WalletAvatar';
 import { NftGrid } from '@/components/NftGrid';
 import { Footer } from '@/components/Footer';
-import { loadNfts, NftResult } from '@/lib/nfts';
+import { loadNfts, clearNftCache, NftResult } from '@/lib/nfts';
 
 const money = (n: number) =>
     n.toLocaleString('en-US', {
@@ -93,6 +93,10 @@ export default function PortfolioPage() {
             }
             setLoading(true);
             setError('');
+            // An explicit refresh means "get me current data", which includes
+            // NFTs the next time that tab is opened.
+            clearNftCache();
+            setNfts(null);
             try {
                 const result = await loadPortfolio(s);
                 setData(result);
