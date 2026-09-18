@@ -177,6 +177,43 @@ export function addWallet(
     };
 }
 
+export interface DraftWallet {
+    name: string;
+    address: string;
+    category?: string;
+}
+
+/**
+ * Add several wallets in one go, keeping the good ones and reporting the rest.
+ * Partial success matters here: rejecting the whole batch for one typo would
+ * make the user re-enter everything.
+ */
+export function addWallets(
+    s: Settings,
+    drafts: DraftWallet[],
+): { settings: Settings; added: number; errors: string[] } {
+    let next = s;
+    let added = 0;
+    const errors: string[] = [];
+
+    drafts.forEach((d, i) => {
+        if (!d.address.trim()) return;
+        const res = addWallet(next, d.name, d.address);
+        if (res.error) {
+            errors.push(`Row ${i + 1}: ${res.error}`);
+            return;
+        }
+        next = res.settings;
+        added++;
+        if (d.category) {
+            const justAdded = next.wallets[next.wallets.length - 1];
+            next = setWalletCategory(next, justAdded.id, d.category);
+        }
+    });
+
+    return { settings: next, added, errors };
+}
+
 export const removeWallet = (s: Settings, id: string): Settings => ({
     ...s,
     wallets: s.wallets.filter((w) => w.id !== id),

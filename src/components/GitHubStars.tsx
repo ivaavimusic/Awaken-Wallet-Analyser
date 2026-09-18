@@ -23,6 +23,9 @@ export function GitHubStars() {
             if (raw) {
                 const c = JSON.parse(raw) as { at: number; n: number };
                 if (Date.now() - c.at < TTL_MS) {
+                    // Cached value is known synchronously; one extra pass is
+                    // cheaper than a network round trip on every mount.
+                    // eslint-disable-next-line react-hooks/set-state-in-effect
                     setStars(c.n);
                     return;
                 }

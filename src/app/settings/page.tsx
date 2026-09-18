@@ -22,7 +22,10 @@ import {
     importSettings,
     emptySettings,
     setWalletCategory,
+    addWallets,
+    usedCategories,
     WALLET_CATEGORIES,
+    DraftWallet,
     Settings,
 } from '@/lib/settings';
 import {
@@ -47,8 +50,10 @@ import {
 export default function SettingsPage() {
     const [settings, setSettings] = useState<Settings>(emptySettings());
     const [ready, setReady] = useState(false);
-    const [name, setName] = useState('');
-    const [address, setAddress] = useState('');
+    const [drafts, setDrafts] = useState<DraftWallet[]>([
+        { name: '', address: '' },
+    ]);
+    const [batchCategory, setBatchCategory] = useState('none');
     const [walletError, setWalletError] = useState('');
     const [showKey, setShowKey] = useState(false);
     const [rpcDrafts, setRpcDrafts] = useState<Record<string, string>>({});
@@ -72,17 +77,29 @@ export default function SettingsPage() {
         setTimeout(() => setSaved(false), 1500);
     };
 
-    const handleAddWallet = (e: React.FormEvent) => {
+    const setDraft = (i: number, patch: Partial<DraftWallet>) =>
+        setDrafts((d) => d.map((row, j) => (j === i ? { ...row, ...patch } : row)));
+
+    const handleAddWallets = (e: React.FormEvent) => {
         e.preventDefault();
-        const { settings: next, error } = addWallet(settings, name, address);
-        if (error) {
-            setWalletError(error);
-            return;
+        const category = batchCategory === 'none' ? undefined : batchCategory;
+        const { settings: next, added, errors } = addWallets(
+            settings,
+            drafts.map((d) => ({ ...d, category })),
+        );
+
+        setWalletError(errors.join('  '));
+        if (added > 0) {
+            // Keep only the rows that failed, so nothing valid is retyped.
+            setDrafts(
+                errors.length > 0
+                    ? drafts.filter((_, i) =>
+                          errors.some((m) => m.startsWith(`Row ${i + 1}:`)),
+                      )
+                    : [{ name: '', address: '' }],
+            );
+            commit(next);
         }
-        setWalletError('');
-        setName('');
-        setAddress('');
-        commit(next);
     };
 
     const chains = getSupportedChains();
@@ -125,26 +142,97 @@ export default function SettingsPage() {
                         is detected automatically.
                     </p>
 
-                    <form
-                        onSubmit={handleAddWallet}
-                        className="flex flex-col sm:flex-row gap-2 mb-4"
-                    >
-                        <Input
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Name (e.g. Main)"
-                            className="sm:w-48"
-                        />
-                        <Input
-                            value={address}
-                            onChange={(e) => setAddress(e.target.value)}
-                            placeholder="0x… , base58 Solana address, or keeta_…"
-                            className="flex-1 font-mono text-sm"
-                        />
-                        <Button type="submit" className="gap-2 cursor-pointer">
-                            <Plus className="w-4 h-4" />
-                            Add
-                        </Button>
+                    <form onSubmit={handleAddWallets} className="mb-4">
+                        <div className="space-y-2">
+                            {drafts.map((d, i) => (
+                                <div key={i} className="flex gap-2">
+                                    <Input
+                                        value={d.name}
+                                        onChange={(e) =>
+                                            setDraft(i, { name: e.target.value })
+                                        }
+                                        placeholder="Name (e.g. Main)"
+                                        className="sm:w-48"
+                                    />
+                                    <Input
+                                        value={d.address}
+                                        onChange={(e) =>
+                                            setDraft(i, { address: e.target.value })
+                                        }
+                                        placeholder="0x… , base58 Solana address, or keeta_…"
+                                        className="flex-1 font-mono text-sm"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label="Remove row"
+                                        disabled={drafts.length === 1}
+                                        onClick={() =>
+                                            setDrafts((rows) =>
+                                                rows.filter((_, j) => j !== i),
+                                            )
+                                        }
+                                        className="shrink-0 text-muted-foreground disabled:opacity-30 cursor-pointer"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 mt-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                    setDrafts((rows) => [
+                                        ...rows,
+                                        { name: '', address: '' },
+                                    ])
+                                }
+                                className="gap-1.5 cursor-pointer"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                Add another
+                            </Button>
+
+                            {/* One category for the whole batch. */}
+                            <Select
+                                value={batchCategory}
+                                onValueChange={setBatchCategory}
+                            >
+                                <SelectTrigger
+                                    size="sm"
+                                    className="w-[170px] text-xs cursor-pointer"
+                                >
+                                    <SelectValue placeholder="Category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">No category</SelectItem>
+                                    {Array.from(
+                                        new Set([
+                                            ...usedCategories(settings.wallets),
+                                            ...WALLET_CATEGORIES,
+                                        ]),
+                                    ).map((c) => (
+                                        <SelectItem key={c} value={c}>
+                                            {c}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <div className="flex-1" />
+
+                            <Button type="submit" className="gap-2 cursor-pointer">
+                                Save
+                                {drafts.filter((d) => d.address.trim()).length > 1
+                                    ? ` ${drafts.filter((d) => d.address.trim()).length} wallets`
+                                    : ' wallet'}
+                            </Button>
+                        </div>
                     </form>
 
                     {walletError && (

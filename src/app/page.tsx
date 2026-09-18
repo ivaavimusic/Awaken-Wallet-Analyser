@@ -26,7 +26,7 @@ import {
     PortfolioResult,
     ChartPoint,
 } from '@/lib/portfolio';
-import { AlertTriangle, ChevronDown, Layers, RefreshCw, Wallet as WalletIcon, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, Layers, RefreshCw, Wallet as WalletIcon, X } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -76,8 +76,8 @@ export default function PortfolioPage() {
     const [chartLoading, setChartLoading] = useState(false);
     const [error, setError] = useState('');
     const [selected, setSelected] = useState<string[]>([]);
-    /** null = every wallet combined. */
-    const [walletId, setWalletId] = useState<string | null>(null);
+    /** Empty = every wallet combined. */
+    const [walletIds, setWalletIds] = useState<string[]>([]);
     /** null = every category. Mutually exclusive with walletId. */
     const [category, setCategory] = useState<string | null>(null);
     /** Earliest on-chain activity in the current scope, if determinable. */
@@ -167,12 +167,12 @@ export default function PortfolioPage() {
             settings.wallets
                 .filter(
                     (w) =>
-                        (walletId === null || w.id === walletId) &&
+                        (walletIds.length === 0 || walletIds.includes(w.id)) &&
                         (category === null || w.category === category),
                 )
                 .map((w) => w.id),
         );
-        const noWalletFilter = walletId === null && category === null;
+        const noWalletFilter = walletIds.length === 0 && category === null;
         if (noChainFilter && noWalletFilter) {
             return {
                 assets: data.assets,
@@ -187,10 +187,17 @@ export default function PortfolioPage() {
         );
         const scope = settings.wallets.filter((w) => inScope.has(w.id));
         return aggregate(filtered, data.spot, scope, data.images);
-    }, [data, settings, selected, walletId, category]);
+    }, [data, settings, selected, walletIds, category]);
 
     const activeWallet =
-        settings?.wallets.find((w) => w.id === walletId) ?? null;
+        walletIds.length === 1
+            ? (settings?.wallets.find((w) => w.id === walletIds[0]) ?? null)
+            : null;
+    const scopeLabel = activeWallet
+        ? activeWallet.name
+        : walletIds.length > 1
+          ? `${walletIds.length} wallets`
+          : (category ?? 'All wallets');
 
     // A wallet chart needs that wallet's own holdings, not the whole portfolio,
     // and must not draw a line from before those wallets existed.
@@ -201,7 +208,7 @@ export default function PortfolioPage() {
 
         const scopeWallets = settings.wallets.filter(
             (w) =>
-                (walletId === null || w.id === walletId) &&
+                (walletIds.length === 0 || walletIds.includes(w.id)) &&
                 (category === null || w.category === category),
         );
         const chainsByWallet = Object.fromEntries(
@@ -227,7 +234,7 @@ export default function PortfolioPage() {
             cancelled = true;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [walletId, category, selected.join(','), data?.fetchedAt]);
+    }, [walletIds.join(','), category, selected.join(','), data?.fetchedAt]);
 
     // NFTs are fetched only when the tab is actually opened, so the default
     // view never pays for them.
@@ -291,9 +298,9 @@ export default function PortfolioPage() {
                         <div className="flex items-end justify-between flex-wrap gap-4">
                             <div>
                                 <div className="text-sm text-muted-foreground font-medium">
-                                    {activeWallet
-                                        ? activeWallet.name
-                                        : category ?? 'Total value'}
+                                    {walletIds.length > 0 || category
+                                        ? scopeLabel
+                                        : 'Total value'}
                                     {selected.length > 0 && ' · filtered'}
                                 </div>
                                 <div className="text-4xl font-bold tracking-tight mt-1">
@@ -323,37 +330,31 @@ export default function PortfolioPage() {
                                             className="gap-2 cursor-pointer max-w-[220px]"
                                         >
                                             {activeWallet ? (
-                                                <>
-                                                    <WalletAvatar
-                                                        address={activeWallet.address}
-                                                        size={18}
-                                                    />
-                                                    <span className="truncate">
-                                                        {activeWallet.name}
-                                                    </span>
-                                                </>
+                                                <WalletAvatar
+                                                    address={activeWallet.address}
+                                                    size={18}
+                                                />
                                             ) : (
-                                                <>
-                                                    <WalletIcon className="w-4 h-4" />
-                                                    <span className="truncate">
-                                                        {category ?? 'All wallets'}
-                                                    </span>
-                                                </>
+                                                <WalletIcon className="w-4 h-4" />
                                             )}
+                                            <span className="truncate">
+                                                {scopeLabel}
+                                            </span>
                                             <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent
                                         align="end"
-                                        className="w-64 bg-card border-border/50"
+                                        className="w-72 bg-card border-border/50 max-h-[60vh] overflow-y-auto"
                                     >
                                         <DropdownMenuItem
                                             onClick={() => {
-                                                setWalletId(null);
+                                                setWalletIds([]);
                                                 setCategory(null);
                                             }}
-                                            className={`gap-3 py-2.5 cursor-pointer ${
-                                                walletId === null && category === null
+                                            className={`gap-3 py-2 cursor-pointer ${
+                                                walletIds.length === 0 &&
+                                                category === null
                                                     ? 'bg-accent'
                                                     : ''
                                             }`}
@@ -377,7 +378,7 @@ export default function PortfolioPage() {
                                                     <DropdownMenuItem
                                                         key={c}
                                                         onClick={() => {
-                                                            setWalletId(null);
+                                                            setWalletIds([]);
                                                             setCategory(c);
                                                         }}
                                                         className={`gap-3 py-2 cursor-pointer ${
@@ -402,29 +403,42 @@ export default function PortfolioPage() {
                                         {(data?.wallets ?? []).map((w) => (
                                             <DropdownMenuItem
                                                 key={w.wallet.id}
-                                                onClick={() => {
+                                                onSelect={(e) => {
+                                                    // Keep the menu open so
+                                                    // several can be picked.
+                                                    e.preventDefault();
                                                     setCategory(null);
-                                                    setWalletId(w.wallet.id);
+                                                    setWalletIds((prev) =>
+                                                        prev.includes(w.wallet.id)
+                                                            ? prev.filter(
+                                                                  (x) =>
+                                                                      x !==
+                                                                      w.wallet.id,
+                                                              )
+                                                            : [...prev, w.wallet.id],
+                                                    );
                                                 }}
-                                                className={`gap-3 py-2.5 cursor-pointer ${
-                                                    walletId === w.wallet.id
+                                                className={`gap-2.5 py-1.5 cursor-pointer ${
+                                                    walletIds.includes(w.wallet.id)
                                                         ? 'bg-accent'
                                                         : ''
                                                 }`}
                                             >
+                                                <Check
+                                                    className={`w-3.5 h-3.5 shrink-0 ${
+                                                        walletIds.includes(w.wallet.id)
+                                                            ? 'opacity-100'
+                                                            : 'opacity-0'
+                                                    }`}
+                                                />
                                                 <WalletAvatar
                                                     address={w.wallet.address}
-                                                    size={22}
+                                                    size={18}
                                                 />
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="font-medium truncate">
-                                                        {w.wallet.name}
-                                                    </div>
-                                                    <div className="text-[10px] font-mono text-muted-foreground truncate">
-                                                        {shorten(w.wallet.address)}
-                                                    </div>
-                                                </div>
-                                                <span className="text-xs text-muted-foreground">
+                                                <span className="flex-1 min-w-0 truncate text-xs font-medium">
+                                                    {w.wallet.name}
+                                                </span>
+                                                <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
                                                     {money(w.usd)}
                                                 </span>
                                             </DropdownMenuItem>
@@ -538,7 +552,7 @@ export default function PortfolioPage() {
                                     result={nfts}
                                     loading={nftsLoading}
                                     selectedChains={selected}
-                                    walletId={walletId}
+                                    walletIds={walletIds}
                                 />
                             ) : (
                             <div className="px-4 pb-2 overflow-x-auto">

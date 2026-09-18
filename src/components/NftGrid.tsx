@@ -14,8 +14,8 @@ interface NftGridProps {
     loading: boolean;
     /** Chain ids currently selected; empty means all. */
     selectedChains: string[];
-    /** Wallet id filter; null means all. */
-    walletId: string | null;
+    /** Wallet id filter; empty means all. */
+    walletIds: string[];
 }
 
 function NftTile({ item }: { item: NftItem }) {
@@ -74,7 +74,7 @@ export function NftGrid({
     result,
     loading,
     selectedChains,
-    walletId,
+    walletIds,
 }: NftGridProps) {
     if (loading) {
         return (
@@ -111,7 +111,7 @@ export function NftGrid({
     const items = (result?.items ?? []).filter(
         (n) =>
             (selectedChains.length === 0 || selectedChains.includes(n.chainId)) &&
-            (walletId === null || n.walletId === walletId),
+            (walletIds.length === 0 || walletIds.includes(n.walletId)),
     );
 
     return (
@@ -162,7 +162,10 @@ export function NftGrid({
             {items.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-10">
                     No NFTs found
-                    {selectedChains.length > 0 || walletId ? ' for this filter' : ''}.
+                    {selectedChains.length > 0 || walletIds.length > 0
+                        ? ' for this filter'
+                        : ''}
+                    .
                 </p>
             ) : (
                 <div className="max-h-[440px] overflow-y-auto pr-1 -mr-1">

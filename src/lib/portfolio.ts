@@ -190,7 +190,9 @@ export async function loadPortfolio(
                     }
                     if (sol.tokensUnavailable) {
                         notes.push(
-                            'SPL token lookups were refused, so only native SOL is shown for the affected wallets.',
+                            settings.alchemyKey
+                                ? 'SPL token lookups were refused. Enable SOLANA_MAINNET for your app in the Alchemy dashboard — it is off by default.'
+                                : 'SPL token lookups were refused. Public Solana endpoints block them; add an Alchemy key in Settings to see your tokens.',
                         );
                     }
 
