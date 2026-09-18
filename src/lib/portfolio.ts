@@ -57,6 +57,8 @@ export interface PortfolioResult {
     images: Record<string, string>;
     /** True when any chain failed, so the total is known to be incomplete. */
     incomplete: boolean;
+    /** Wallet id -> why that specific wallet could not be read. */
+    walletIssues: Record<string, string>;
 }
 
 export interface Aggregated {
@@ -135,6 +137,7 @@ export async function loadPortfolio(
     const mode: 'alchemy' | 'public' = settings.alchemyKey ? 'alchemy' : 'public';
     const chainStatus: ChainStatus[] = [];
     const balances: RawBalance[] = [];
+    const walletIssues: Record<string, string> = {};
 
     // Only touch chains a saved wallet could actually exist on.
     const targets = chainsForWallets(wallets);
@@ -199,9 +202,12 @@ export async function loadPortfolio(
                     balances.push(...sol.balances);
 
                     const notes: string[] = [];
+                    for (const bad of sol.invalid) {
+                        walletIssues[bad.id] = bad.reason;
+                    }
                     if (sol.invalid.length > 0) {
                         notes.push(
-                            `Not a valid Solana address, skipped: ${sol.invalid.join(', ')}. Remove or correct ${sol.invalid.length === 1 ? 'it' : 'them'} in Settings.`,
+                            `Skipped ${sol.invalid.map((b) => b.name).join(', ')} — not a valid Solana address. Fix it in Settings.`,
                         );
                     }
                     // Report what the endpoints actually said. A guessed cause
@@ -281,6 +287,7 @@ export async function loadPortfolio(
         mode,
         spot,
         images,
+        walletIssues,
         incomplete: chainStatus.some((c) => c.state === 'failed'),
     };
 }
@@ -337,29 +344,56 @@ export async function buildChart(
         daily.set(id, toDailyMap(series));
     }
 
+    // A history request can fail or be rate limited. Such an asset used to
+    // contribute nothing to every point while still counting in the header,
+    // which is why the chart could sit well below the stated total. Carry it
+    // flat at its current value instead, exactly like the ones CoinGecko
+    // cannot name at all.
+    const withHistory = priced.filter(
+        (a) => (daily.get(a.coingeckoId as string)?.size ?? 0) > 0,
+    );
+    const missingHistoryUsd = priced
+        .filter((a) => (daily.get(a.coingeckoId as string)?.size ?? 0) === 0)
+        .reduce((acc, a) => acc + a.usd, 0);
+
+    const carried = flatUsd + missingHistoryUsd;
+    const carriedShare = total > 0 ? carried / total : 0;
+
+    if (withHistory.length === 0) {
+        return { points: [], flatUsd: carried, flatShare: carriedShare };
+    }
+
     // Union of all days any asset has a price for.
     const days = new Set<string>();
-    for (const m of daily.values()) for (const d of m.keys()) days.add(d);
+    for (const a of withHistory) {
+        const m = daily.get(a.coingeckoId as string);
+        if (m) for (const d of m.keys()) days.add(d);
+    }
     const sorted = Array.from(days).sort();
 
     const points = sorted.map((day) => {
-        let usd = flatUsd;
-        for (const a of priced) {
+        let usd = carried;
+        for (const a of withHistory) {
             const price = daily.get(a.coingeckoId as string)?.get(day);
-            if (price !== undefined) usd += a.quantity * price;
+            // Missing single days would otherwise dip the line; hold the
+            // asset's current value for that day instead of dropping it.
+            usd += a.quantity * (price ?? 0) || 0;
+            if (price === undefined) usd += a.usd;
         }
         return { t: Date.parse(`${day}T00:00:00Z`), usd };
     });
 
-    if (typeof since !== 'number') return { points, flatUsd, flatShare };
+    if (typeof since !== 'number') {
+        return { points, flatUsd: carried, flatShare: carriedShare };
+    }
 
     // Drop days before the wallet existed. Keep at least two points so a very
     // new wallet still renders a line rather than collapsing to nothing.
     const clamped = points.filter((p) => p.t >= since);
     return {
         points: clamped.length >= 2 ? clamped : points.slice(-2),
-        flatUsd,
-        flatShare,
+        flatUsd: carried,
+        flatShare: carriedShare,
     };
 }
 
@@ -385,6 +419,7 @@ export function toCache(r: PortfolioResult): CachedPortfolio {
         spot: r.spot,
         images: r.images,
         chainStatus: r.chainStatus,
+        walletIssues: r.walletIssues,
     };
 }
 
@@ -418,6 +453,7 @@ export function fromCache(
             mode: c.mode,
             spot: c.spot,
             images: c.images,
+            walletIssues: c.walletIssues ?? {},
             incomplete: chainStatus.some((x) => x.state === 'failed'),
         };
     } catch {

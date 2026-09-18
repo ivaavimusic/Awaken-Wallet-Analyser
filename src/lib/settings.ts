@@ -52,6 +52,7 @@ export interface CachedPortfolio {
     spot: Record<string, number>;
     images: Record<string, string>;
     chainStatus: { chainId: string; state: string; message?: string }[];
+    walletIssues?: Record<string, string>;
 }
 
 export interface Settings {

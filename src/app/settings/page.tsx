@@ -9,6 +9,7 @@ import { Footer } from '@/components/Footer';
 import { ChainLogo } from '@/components/ChainLogo';
 import { getSupportedChains, alchemyRpcUrl } from '@/lib/chains';
 import { resolveRpcs } from '@/lib/rpc';
+import { detectKind } from '@/lib/chains';
 import {
     loadSettings,
     saveSettings,
@@ -264,8 +265,22 @@ export default function SettingsPage() {
                                         }
                                         className="w-36 bg-transparent font-medium text-sm focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 py-0.5"
                                     />
-                                    <span className="flex-1 font-mono text-xs text-muted-foreground truncate">
-                                        {w.address}
+                                    <span className="flex-1 min-w-0">
+                                        <span className="block font-mono text-xs text-muted-foreground truncate">
+                                            {w.address}
+                                        </span>
+                                        {detectKind(w.address) !== w.kind && (
+                                            <span className="block text-[10px] text-red-600 dark:text-red-400 mt-0.5">
+                                                This address is not valid for{' '}
+                                                {w.kind === 'svm'
+                                                    ? 'Solana'
+                                                    : w.kind === 'btc'
+                                                      ? 'Bitcoin'
+                                                      : w.kind.toUpperCase()}{' '}
+                                                — it will be skipped. Remove and
+                                                re-add it.
+                                            </span>
+                                        )}
                                     </span>
                                     <Select
                                         value={w.category ?? 'none'}

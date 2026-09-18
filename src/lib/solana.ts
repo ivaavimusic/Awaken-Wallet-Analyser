@@ -42,7 +42,7 @@ export interface SolanaResult {
     /** Verbatim reason the batched balance read failed, when it did. */
     balanceError?: string;
     /** Saved wallets whose address is not a valid 32-byte Solana pubkey. */
-    invalid: string[];
+    invalid: { id: string; name: string; reason: string }[];
     /** Non-zero when the batched native balance read failed outright. */
     balanceFailures: number;
     /**
@@ -66,7 +66,11 @@ export async function fetchSolanaBalances(
     const solWallets = all.filter((w) => base58Length(w.address) === 32);
     const invalid = all
         .filter((w) => base58Length(w.address) !== 32)
-        .map((w) => w.name || w.address);
+        .map((w) => ({
+            id: w.id,
+            name: w.name || w.address,
+            reason: 'Not a valid Solana address (must decode to 32 bytes).',
+        }));
 
     if (solWallets.length === 0) {
         return {

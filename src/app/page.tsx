@@ -25,7 +25,7 @@ import {
     PortfolioResult,
     ChartPoint,
 } from '@/lib/portfolio';
-import { Check, ChevronDown, ChevronsDown, Layers, RefreshCw, Wallet as WalletIcon } from 'lucide-react';
+import { Check, ChevronDown, ChevronsDown, Layers, RefreshCw, TriangleAlert, Wallet as WalletIcon } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -695,6 +695,22 @@ export default function PortfolioPage() {
                                                             size={24}
                                                         />
                                                         {w.wallet.name}
+                                                        {data?.walletIssues[
+                                                            w.wallet.id
+                                                        ] && (
+                                                            <span
+                                                                title={
+                                                                    data
+                                                                        .walletIssues[
+                                                                        w.wallet.id
+                                                                    ]
+                                                                }
+                                                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400"
+                                                            >
+                                                                <TriangleAlert className="w-3 h-3" />
+                                                                Error
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="p-2 font-mono text-muted-foreground">
