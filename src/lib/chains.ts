@@ -42,6 +42,13 @@ export interface ChainConfig {
      * themes without inverting it away from the brand colour.
      */
     logoBg?: string;
+    /**
+     * Chains that are one product to a user are filtered as one badge.
+     * Hyperliquid is two systems (HyperEVM and HyperCore) sharing an address;
+     * nobody thinks of their holdings as split between them.
+     */
+    groupId?: string;
+    groupName?: string;
     addressValidator: (address: string) => boolean;
 }
 
@@ -134,6 +141,8 @@ export const CHAINS: Record<string, ChainConfig> = {
         color: '#97FCE4',
         short: 'HL',
         logo: '/assets/hyperliquid.svg',
+        groupId: 'hyperliquid',
+        groupName: 'Hyperliquid',
         addressValidator: isEvmAddress,
     },
     hyperliquid: {
@@ -152,6 +161,8 @@ export const CHAINS: Record<string, ChainConfig> = {
         color: '#97FCE4',
         short: 'H',
         logo: '/assets/hyperliquid.svg',
+        groupId: 'hyperliquid',
+        groupName: 'Hyperliquid',
         addressValidator: isEvmAddress,
     },
     robinhood: {
@@ -309,6 +320,48 @@ export const getSupportedChains = (): ChainConfig[] => {
 
 export const getChainsByKind = (kind: ChainKind): ChainConfig[] =>
     getSupportedChains().filter((c) => c.kind === kind);
+
+export interface ChainGroup {
+    key: string;
+    name: string;
+    /** Chain used for the logo and colour. */
+    repr: ChainConfig;
+    /** Every chain id this badge stands for. */
+    ids: string[];
+}
+
+/**
+ * Chains collapsed into the badges the UI shows, preserving display order.
+ * A chain with no groupId is its own badge.
+ */
+export function getChainGroups(): ChainGroup[] {
+    const groups: ChainGroup[] = [];
+    const byKey = new Map<string, ChainGroup>();
+
+    for (const c of getSupportedChains()) {
+        const key = c.groupId ?? c.id;
+        const existing = byKey.get(key);
+        if (existing) {
+            existing.ids.push(c.id);
+            continue;
+        }
+        const g: ChainGroup = {
+            key,
+            name: c.groupName ?? c.name,
+            repr: c,
+            ids: [c.id],
+        };
+        byKey.set(key, g);
+        groups.push(g);
+    }
+    return groups;
+}
+
+/** Collapse chain ids into the badges that represent them, order preserved. */
+export function groupChainIds(ids: string[]): ChainGroup[] {
+    const wanted = new Set(ids);
+    return getChainGroups().filter((g) => g.ids.some((id) => wanted.has(id)));
+}
 
 export function validateAddress(address: string, chainId: string): boolean {
     return getChain(chainId).addressValidator(address);

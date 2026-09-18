@@ -8,7 +8,7 @@ import { Navbar } from '@/components/Navbar';
 import { ChainFilter } from '@/components/ChainFilter';
 import { ChainLogo } from '@/components/ChainLogo';
 import { PortfolioChart } from '@/components/PortfolioChart';
-import { getSupportedChains, CHAINS } from '@/lib/chains';
+import { getChainGroups, groupChainIds, CHAINS } from '@/lib/chains';
 import {
     loadSettings,
     saveSettings,
@@ -138,10 +138,15 @@ export default function PortfolioPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [settings?.wallets.length, settings?.cache?.fetchedAt]);
 
-    const toggleChain = (id: string) =>
-        setSelected((prev) =>
-            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-        );
+    // A badge can stand for several sources (Hyperliquid is two), so toggling
+    // it moves every id behind it together.
+    const toggleChain = (ids: string[]) =>
+        setSelected((prev) => {
+            const on = ids.some((id) => prev.includes(id));
+            return on
+                ? prev.filter((x) => !ids.includes(x))
+                : [...prev, ...ids];
+        });
 
     // Re-aggregate locally when a chain or wallet filter is active — no refetch.
     const view = useMemo(() => {
@@ -219,7 +224,7 @@ export default function PortfolioPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [assetTab, settings?.alchemyKey]);
 
-    const chains = getSupportedChains();
+    const chainGroups = getChainGroups();
     const problems = data?.chainStatus.filter((c) => c.state !== 'ok') ?? [];
     const hasWallets = (settings?.wallets.length ?? 0) > 0;
 
@@ -361,7 +366,7 @@ export default function PortfolioPage() {
                         </div>
 
                         <ChainFilter
-                            chains={chains}
+                            groups={chainGroups}
                             selected={selected}
                             onToggle={toggleChain}
                             onClear={() => setSelected([])}
@@ -558,24 +563,17 @@ export default function PortfolioPage() {
                                                 </td>
                                                 <td className="p-2">
                                                     <div className="flex gap-1 flex-wrap">
-                                                        {w.chains.map((c) =>
-                                                            CHAINS[c] ? (
+                                                        {groupChainIds(w.chains).map(
+                                                            (g) => (
                                                                 <span
-                                                                    key={c}
+                                                                    key={g.key}
                                                                     className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full text-[10px] font-medium bg-muted/50"
                                                                 >
                                                                     <ChainLogo
-                                                                        chain={CHAINS[c]}
+                                                                        chain={g.repr}
                                                                         size={14}
                                                                     />
-                                                                    {CHAINS[c].name}
-                                                                </span>
-                                                            ) : (
-                                                                <span
-                                                                    key={c}
-                                                                    className="px-1.5 py-0.5 rounded text-[10px]"
-                                                                >
-                                                                    {c}
+                                                                    {g.name}
                                                                 </span>
                                                             ),
                                                         )}
