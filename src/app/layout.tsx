@@ -15,7 +15,7 @@ export const metadata: Metadata = {
       "OpenPort — Multi-Chain Crypto Portfolio Tracker (Ethereum, Solana, Base)",
     template: "%s",
   },
-  description: "Open-source personal portfolio manager for Ethereum, Base, Robinhood Chain, Solana, MegaETH and Keeta. Runs on public RPCs, stores everything in your browser.",
+  description: "Open-source crypto portfolio viewer for Ethereum, Solana, Base, Arbitrum, Hyperliquid, Abstract and more. Runs on public RPCs, stores everything in your browser, and never touches your funds.",
   keywords: [
     "crypto portfolio tracker",
     "multi-chain portfolio",
