@@ -14,7 +14,9 @@ const TABS = [
 ];
 
 export function Navbar({ children }: { children?: React.ReactNode }) {
-    const { theme, setTheme } = useTheme();
+    // `theme` is the literal string "system" until the user picks one, so it
+    // cannot answer "is the page dark right now". `resolvedTheme` can.
+    const { resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const pathname = usePathname();
 
@@ -22,7 +24,10 @@ export function Navbar({ children }: { children?: React.ReactNode }) {
     // resolved after mount. The cascading render is one cheap pass, by design.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => setMounted(true), []);
-    const isDark = theme === 'dark';
+    const isDark = resolvedTheme === 'dark';
+    // Before mount the resolved theme is unknown; assume neither, so the logo
+    // does not flash inverted on the first paint.
+    const invertLogo = mounted && isDark;
 
     return (
         <nav className="border-b border-border/10 bg-background/50 backdrop-blur-sm py-4">
@@ -32,7 +37,7 @@ export function Navbar({ children }: { children?: React.ReactNode }) {
                         <img
                             src="/logo_bunnyAnalyzer.svg"
                             alt="OpenPort"
-                            className={`h-8 w-auto ${isDark ? 'brightness-0 invert' : ''}`}
+                            className={`h-8 w-auto ${invertLogo ? 'brightness-0 invert' : ''}`}
                         />
                         <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">
                             OpenPort
