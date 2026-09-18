@@ -72,7 +72,9 @@ export async function jsonRpc<T>(
     method: string,
     params: unknown[],
 ): Promise<T> {
-    let lastError: unknown;
+    // Every endpoint's reason is kept. Reporting only the last one hid the
+    // useful message behind whichever fallback happened to fail last.
+    const failures: string[] = [];
     for (const url of urls) {
         for (let attempt = 0; attempt < 2; attempt++) {
         try {
@@ -89,17 +91,45 @@ export async function jsonRpc<T>(
                 await sleep(600);
                 continue;
             }
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {
+                // The body is where a provider explains itself ("network not
+                // enabled", "rate limit"). A bare status code sends people
+                // hunting for the wrong problem.
+                let detail = '';
+                try {
+                    const text = (await res.text()).trim();
+                    const parsed = text.startsWith('{')
+                        ? JSON.parse(text)
+                        : null;
+                    detail =
+                        parsed?.error?.message ??
+                        parsed?.message ??
+                        text.slice(0, 180);
+                } catch {
+                    /* body unreadable; the status alone will have to do */
+                }
+                const host = new URL(url).host;
+                throw new Error(
+                    `${host} returned ${res.status}${detail ? ` — ${detail}` : ''}`,
+                );
+            }
             const json = await res.json();
-            if (json.error) throw new Error(json.error.message ?? 'RPC error');
+            if (json.error) {
+                const host = new URL(url).host;
+                throw new Error(
+                    `${host}: ${json.error.message ?? 'RPC error'}`,
+                );
+            }
             return json.result as T;
         } catch (e) {
-            lastError = e;
+            failures.push(e instanceof Error ? e.message : String(e));
         }
         break;
         }
     }
-    throw lastError instanceof Error
-        ? lastError
-        : new Error('All endpoints failed');
+    throw new Error(
+        failures.length > 0
+            ? failures.join(' | ')
+            : 'No endpoint configured',
+    );
 }
