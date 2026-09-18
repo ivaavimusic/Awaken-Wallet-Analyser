@@ -66,24 +66,54 @@ export function Footer() {
             </div>
 
             <div className="py-5 border-t border-border/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                        src="/EHLLOGO.png"
-                        alt=""
-                        className="h-6 w-auto opacity-80"
+                        src="/avatar-ivaavimusic.png"
+                        alt="ivaavimusic"
+                        width={28}
+                        height={28}
+                        className="rounded-full shrink-0"
                     />
-                    <span>
-                        Built by{' '}
-                        <a
-                            href="https://ehlabs.xyz"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-medium text-foreground hover:underline"
-                        >
-                            EventHorizon Labs
-                        </a>
-                    </span>
+                    <div className="leading-tight">
+                        <div>
+                            Built by{' '}
+                            <a
+                                href="https://ehlabs.xyz"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-medium text-foreground hover:underline"
+                            >
+                                EventHorizon Labs
+                            </a>
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5">
+                            <a
+                                href="https://github.com/ivaavimusic"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 hover:text-foreground transition-colors"
+                            >
+                                <Github className="w-3 h-3" />
+                                @ivaavimusic
+                            </a>
+                            <a
+                                href="https://x.com/ivaavimusic"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 hover:text-foreground transition-colors"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    className="w-3 h-3 fill-current"
+                                    aria-hidden
+                                >
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                </svg>
+                                @ivaavimusic
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-4">

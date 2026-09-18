@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GitHubStars } from '@/components/GitHubStars';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
@@ -69,6 +70,7 @@ export function Navbar({ children }: { children?: React.ReactNode }) {
 
                 <div className="flex items-center gap-3">
                     {children}
+                    <GitHubStars />
                     <Button
                         variant="outline"
                         size="icon"

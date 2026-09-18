@@ -10,9 +10,38 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://openport.ehlabs.xyz"),
-  title: "OpenPort | Multi-chain portfolio manager",
+  title: {
+    default:
+      "OpenPort — Multi-Chain Crypto Portfolio Tracker (Ethereum, Solana, Base)",
+    template: "%s",
+  },
   description: "Open-source personal portfolio manager for Ethereum, Base, Robinhood Chain, Solana, MegaETH and Keeta. Runs on public RPCs, stores everything in your browser.",
-  keywords: ["portfolio", "Ethereum", "Base", "Robinhood Chain", "Solana", "MegaETH", "Keeta", "wallet", "crypto", "tax export", "tax", "CSV"],
+  keywords: [
+    "crypto portfolio tracker",
+    "multi-chain portfolio",
+    "ethereum portfolio tracker",
+    "solana portfolio tracker",
+    "base portfolio tracker",
+    "arbitrum",
+    "hyperliquid",
+    "robinhood chain",
+    "megaeth",
+    "blast",
+    "keeta",
+    "open source portfolio tracker",
+    "self-hosted crypto tracker",
+    "crypto tax csv export",
+    "wallet tracker no signup",
+  ],
+  applicationName: "OpenPort",
+  creator: "EventHorizon Labs",
+  publisher: "EventHorizon Labs",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  category: "finance",
   authors: [{ name: "Event Horizon Labs" }],
   icons: {
     icon: [
@@ -26,7 +55,8 @@ export const metadata: Metadata = {
   },
   manifest: "/favicon_io/site.webmanifest",
   openGraph: {
-    title: "OpenPort | Multi-chain portfolio manager",
+    title:
+      "OpenPort — Multi-Chain Crypto Portfolio Tracker (Ethereum, Solana, Base)",
     description:
       "Track what you own across ten networks. No account, no backend, no API key required.",
     url: "https://openport.ehlabs.xyz",
@@ -43,7 +73,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "OpenPort | Multi-chain portfolio manager",
+    title:
+      "OpenPort — Multi-Chain Crypto Portfolio Tracker (Ethereum, Solana, Base)",
     description:
       "Track what you own across ten networks. No account, no backend, no API key required.",
     images: ["/og.png"],
