@@ -7,7 +7,7 @@ import { ChartPoint } from '@/lib/portfolio';
 import { Snapshot } from '@/lib/settings';
 
 const W = 900;
-const H = 220;
+const H = 130;
 
 interface PortfolioChartProps {
     points: ChartPoint[];
@@ -90,8 +90,8 @@ export function PortfolioChart({
     const active = hover !== null ? points[hover] : null;
 
     return (
-        <Card className="p-6 border-0 bg-card text-card-foreground">
-            <div className="flex items-start justify-between mb-4">
+        <Card className="p-5 border-0 bg-card text-card-foreground">
+            <div className="flex items-start justify-between mb-2">
                 <div>
                     <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
                         <span>{rangeLabel}</span>
@@ -102,7 +102,7 @@ export function PortfolioChart({
                             <Info className="w-3.5 h-3.5" />
                         </span>
                     </div>
-                    <div className="text-2xl font-bold tracking-tight mt-1">
+                    <div className="text-xl font-bold tracking-tight mt-0.5">
                         {active ? money(active.usd) : money(last)}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5 h-4">
@@ -131,7 +131,7 @@ export function PortfolioChart({
                 </div>
             </div>
 
-            <div className="relative w-full h-[220px]">
+            <div className="relative w-full h-[130px]">
                 {loading ? (
                     <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
                         Loading price history…
@@ -180,24 +180,6 @@ export function PortfolioChart({
                             className="text-primary"
                         />
 
-                        {/* Real recorded snapshots. */}
-                        {geo.dots.map((d, i) => (
-                            <circle
-                                key={i}
-                                cx={d.cx}
-                                cy={d.cy}
-                                r="3.5"
-                                className="fill-primary"
-                                stroke="var(--card)"
-                                strokeWidth="1.5"
-                            >
-                                <title>
-                                    Recorded {money(d.usd)} on{' '}
-                                    {new Date(d.t).toLocaleDateString()}
-                                </title>
-                            </circle>
-                        ))}
-
                         {hover !== null && (
                             <line
                                 x1={geo.x(hover)}
@@ -213,9 +195,42 @@ export function PortfolioChart({
                         )}
                     </svg>
                 )}
+
+                {/*
+                 * Dots live in an HTML overlay rather than inside the SVG: the
+                 * chart stretches with preserveAspectRatio="none", which would
+                 * squash any <circle> into an ellipse.
+                 */}
+                {geo && !loading && (
+                    <div className="absolute inset-0 pointer-events-none">
+                        {geo.dots.map((d, i) => (
+                            <span
+                                key={i}
+                                title={`Recorded ${money(d.usd)} on ${new Date(
+                                    d.t,
+                                ).toLocaleDateString()}`}
+                                className="absolute w-2 h-2 rounded-full bg-primary ring-2 ring-[var(--card)] -translate-x-1/2 -translate-y-1/2"
+                                style={{
+                                    left: `${(d.cx / W) * 100}%`,
+                                    top: `${(d.cy / H) * 100}%`,
+                                }}
+                            />
+                        ))}
+
+                        {hover !== null && points[hover] && (
+                            <span
+                                className="absolute w-3 h-3 rounded-full bg-primary ring-2 ring-[var(--card)] shadow-sm -translate-x-1/2 -translate-y-1/2"
+                                style={{
+                                    left: `${(geo.x(hover) / W) * 100}%`,
+                                    top: `${(geo.y(points[hover].usd) / H) * 100}%`,
+                                }}
+                            />
+                        )}
+                    </div>
+                )}
             </div>
 
-            <p className="text-[11px] leading-relaxed text-muted-foreground mt-3">
+            <p className="text-[10px] leading-snug text-muted-foreground/80 mt-2">
                 Current holdings valued at historical prices — not true historical
                 portfolio value. Past buys, sells and transfers are not reflected.
                 Dots mark real totals recorded on each refresh.
