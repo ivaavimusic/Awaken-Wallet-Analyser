@@ -84,15 +84,10 @@ export function aggregate(
         // CoinGecko id first, then any price the source resolved itself.
         const price = b.coingeckoId ? spot[b.coingeckoId] : b.usdPrice;
 
-        // Tickers are not unique — a search for SGL returns several unrelated
-        // tokens. Merging on symbol alone would pool their quantities under
-        // one price. The same asset across chains shares a CoinGecko id or a
-        // unit price, so grouping on that keeps those together while keeping
-        // genuinely different tokens apart.
-        const identity =
-            b.coingeckoId ??
-            (price !== undefined ? `px:${price.toPrecision(6)}` : 'unpriced');
-        const key = `${b.symbol}|${identity}`;
+        // Group by ticker. Keying on price was tried and is wrong: the same
+        // token can be priced from different sources between refreshes, so a
+        // holding split into a new row every time instead of merging.
+        const key = b.symbol;
 
         const row = bySymbol.get(key) ?? {
             symbol: b.symbol,
@@ -479,6 +474,8 @@ export function toCache(r: PortfolioResult): CachedPortfolio {
             decimals: b.decimals,
             amount: b.amount.toString(),
             coingeckoId: b.coingeckoId,
+            usdPrice: b.usdPrice,
+            icon: b.icon,
         })),
         spot: r.spot,
         images: r.images,
@@ -499,6 +496,8 @@ export function fromCache(
             decimals: b.decimals,
             amount: BigInt(b.amount),
             coingeckoId: b.coingeckoId,
+            usdPrice: b.usdPrice,
+            icon: b.icon,
         }));
         const chainStatus = c.chainStatus as ChainStatus[];
         const { assets, wallets: walletRows, totalUsd } = aggregate(

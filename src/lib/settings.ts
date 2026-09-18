@@ -48,6 +48,13 @@ export interface CachedPortfolio {
         decimals: number;
         amount: string;
         coingeckoId?: string;
+        /**
+         * Kept because assets priced by contract or by Jupiter have no
+         * CoinGecko id; without these the price is lost on reload and the
+         * asset reappears as "price unavailable".
+         */
+        usdPrice?: number;
+        icon?: string;
     }[];
     spot: Record<string, number>;
     images: Record<string, string>;
