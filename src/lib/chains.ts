@@ -56,9 +56,40 @@ const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11';
 
 const isEvmAddress = (a: string) => /^0x[a-fA-F0-9]{40}$/.test(a.trim());
 const isKeetaAddress = (a: string) => /^keeta_[a-z0-9]+$/i.test(a.trim());
-// Solana addresses are base58, 32-44 chars, no 0/O/I/l.
+const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+/** Decoded byte length of a base58 string, or -1 if it is not base58. */
+export function base58Length(input: string): number {
+    const s = input.trim();
+    if (s.length === 0) return -1;
+    const bytes: number[] = [];
+    for (const ch of s) {
+        const val = B58.indexOf(ch);
+        if (val === -1) return -1;
+        let carry = val;
+        for (let i = 0; i < bytes.length; i++) {
+            carry += bytes[i] * 58;
+            bytes[i] = carry & 0xff;
+            carry >>= 8;
+        }
+        while (carry > 0) {
+            bytes.push(carry & 0xff);
+            carry >>= 8;
+        }
+    }
+    // Leading '1's are leading zero bytes.
+    for (let i = 0; i < s.length && s[i] === '1'; i++) bytes.push(0);
+    return bytes.length;
+}
+
+/**
+ * A Solana pubkey is 32 bytes. Checking only the character set and string
+ * length lets through shorter values that decode to fewer bytes, and Solana
+ * answers those with "Invalid param: WrongSize" — which, in a batched call,
+ * fails every other address alongside it.
+ */
 const isSolanaAddress = (a: string) =>
-    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a.trim());
+    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a.trim()) && base58Length(a) === 32;
 
 // Bech32 (bc1…) is unambiguous. Legacy P2PKH/P2SH is base58 like Solana, but
 // tops out at 35 characters where a Solana pubkey is almost always 43-44, so

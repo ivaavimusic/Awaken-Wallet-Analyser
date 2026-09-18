@@ -9,7 +9,7 @@ import { jsonRpc } from './rpc';
 import { fetchJupiterTokens, fetchJupiterPrices } from './jupiter';
 import { RawBalance } from './evm';
 import { Wallet } from './settings';
-import { ChainConfig } from './chains';
+import { ChainConfig, base58Length } from './chains';
 import { DisplayTransaction } from '@/types';
 
 const SPL_TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
@@ -41,6 +41,8 @@ export interface SolanaResult {
     tokenError?: string;
     /** Verbatim reason the batched balance read failed, when it did. */
     balanceError?: string;
+    /** Saved wallets whose address is not a valid 32-byte Solana pubkey. */
+    invalid: string[];
     /** Non-zero when the batched native balance read failed outright. */
     balanceFailures: number;
     /**
@@ -56,12 +58,22 @@ export async function fetchSolanaBalances(
     urls: string[],
     wallets: Wallet[],
 ): Promise<SolanaResult> {
-    const solWallets = wallets.filter((w) => w.kind === 'svm');
+    const all = wallets.filter((w) => w.kind === 'svm');
+    // A pubkey that is not 32 bytes makes Solana reject the whole batched
+    // call, taking every valid address down with it. Wallets saved before
+    // validation was tightened can still be bad, so they are filtered here
+    // and reported rather than trusted.
+    const solWallets = all.filter((w) => base58Length(w.address) === 32);
+    const invalid = all
+        .filter((w) => base58Length(w.address) !== 32)
+        .map((w) => w.name || w.address);
+
     if (solWallets.length === 0) {
         return {
             balances: [],
             tokensUnavailable: false,
             balanceFailures: 0,
+            invalid,
         };
     }
 
@@ -171,6 +183,7 @@ export async function fetchSolanaBalances(
         tokenError,
         balanceError,
         balanceFailures,
+        invalid,
     };
 }
 

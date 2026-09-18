@@ -199,6 +199,11 @@ export async function loadPortfolio(
                     balances.push(...sol.balances);
 
                     const notes: string[] = [];
+                    if (sol.invalid.length > 0) {
+                        notes.push(
+                            `Not a valid Solana address, skipped: ${sol.invalid.join(', ')}. Remove or correct ${sol.invalid.length === 1 ? 'it' : 'them'} in Settings.`,
+                        );
+                    }
                     // Report what the endpoints actually said. A guessed cause
                     // sends people to fix the wrong thing.
                     if (sol.balanceFailures > 0) {
