@@ -9,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Bunny Wallet Analyzer | Awaken Tax Export",
-  description: "Analyze your MegaETH and Keeta wallet transactions and export to Awaken Tax CSV format. Open source, free to use.",
-  keywords: ["MegaETH", "Keeta", "wallet", "analyzer", "transactions", "Awaken", "tax", "CSV", "export", "blockchain"],
+  title: "Bunny Portfolio | Multi-chain portfolio manager",
+  description: "Open-source personal portfolio manager for Ethereum, Base, Robinhood Chain, Solana, MegaETH and Keeta. Runs on public RPCs, stores everything in your browser.",
+  keywords: ["portfolio", "Ethereum", "Base", "Robinhood Chain", "Solana", "MegaETH", "Keeta", "wallet", "crypto", "Awaken", "tax", "CSV"],
   authors: [{ name: "Event Horizon Labs" }],
   icons: {
     icon: [
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
   },
   manifest: "/favicon_io/site.webmanifest",
   openGraph: {
-    title: "Bunny Wallet Analyzer",
-    description: "Analyze your MegaETH and Keeta wallet transactions and export to Awaken Tax CSV format.",
+    title: "Bunny Portfolio",
+    description: "Open-source personal multi-chain portfolio manager.",
     type: "website",
   },
 };

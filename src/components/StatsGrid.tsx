@@ -5,8 +5,12 @@ interface StatsGridProps {
     transactionCount: number;
     uniqueDays?: number;
     totalVolume?: string; // e.g. "12.5 ETH"
+    /** Caveat shown under the volume figure, e.g. why it excludes tokens. */
+    volumeNote?: string;
     gasSpent?: string;
-    dailyActivity?: any[]; // transactions for chart
+    /** Caveat shown under the gas figure when the data source lacks fees. */
+    gasNote?: string;
+    dailyActivity?: { timestamp: number }[];
     className?: string;
 }
 
@@ -14,7 +18,9 @@ export function StatsGrid({
     transactionCount = 0,
     uniqueDays = 0,
     totalVolume = "0",
+    volumeNote,
     gasSpent = "0",
+    gasNote,
     dailyActivity = [],
     className
 }: StatsGridProps) {
@@ -76,6 +82,9 @@ export function StatsGrid({
                         <span className="text-sm font-medium">Total Volume</span>
                     </div>
                     <div className="text-2xl font-bold tracking-tight">{totalVolume}</div>
+                    {volumeNote && (
+                        <div className="text-[11px] text-muted-foreground mt-1 leading-tight">{volumeNote}</div>
+                    )}
                 </Card>
 
                 {/* Gas Spent */}
@@ -85,6 +94,9 @@ export function StatsGrid({
                         <span className="text-sm font-medium">Gas Spent</span>
                     </div>
                     <div className="text-2xl font-bold tracking-tight">{gasSpent}</div>
+                    {gasNote && (
+                        <div className="text-[11px] text-muted-foreground mt-1 leading-tight">{gasNote}</div>
+                    )}
                 </Card>
 
                 {/* Wide card for Chain Status */}

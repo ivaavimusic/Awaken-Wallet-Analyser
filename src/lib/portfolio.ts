@@ -1,0 +1,267 @@
+// Portfolio orchestration: fetch per chain, aggregate, price, build the chart.
+//
+// A chain that fails is recorded as failed and excluded from the total. It is
+// never rendered as $0 — an incomplete total with a warning is far safer than
+// a confidently wrong one.
+
+import { CHAINS, ChainConfig, getSupportedChains } from './chains';
+import { Settings, Wallet } from './settings';
+import { buildEvmClient, resolveRpcs } from './rpc';
+import { fetchEvmBalances, toDecimal, RawBalance } from './evm';
+import { fetchSolanaBalances } from './solana';
+import { fetchMarketData, fetchHistories, toDailyMap } from './prices';
+
+export interface AssetRow {
+    symbol: string;
+    quantity: number;
+    usd: number;
+    weight: number;
+    priced: boolean;
+    coingeckoId?: string;
+    /** Token logo URL, when CoinGecko supplied one. */
+    icon?: string;
+}
+
+export interface WalletRow {
+    wallet: Wallet;
+    chains: string[];
+    usd: number;
+}
+
+export type ChainState =
+    | 'ok'
+    | 'degraded'
+    | 'failed'
+    | 'unreachable'
+    | 'unsupported';
+
+export interface ChainStatus {
+    chainId: string;
+    state: ChainState;
+    message?: string;
+}
+
+export interface PortfolioResult {
+    balances: RawBalance[];
+    assets: AssetRow[];
+    wallets: WalletRow[];
+    totalUsd: number;
+    chainStatus: ChainStatus[];
+    fetchedAt: number;
+    mode: 'alchemy' | 'public';
+    /** Spot prices by CoinGecko id, retained so filtering can re-aggregate. */
+    spot: Record<string, number>;
+    /** Token logos by CoinGecko id, retained for the same reason. */
+    images: Record<string, string>;
+    /** True when any chain failed, so the total is known to be incomplete. */
+    incomplete: boolean;
+}
+
+export interface Aggregated {
+    assets: AssetRow[];
+    wallets: WalletRow[];
+    totalUsd: number;
+}
+
+/**
+ * Roll raw balances up into asset and wallet rows. Pure, so the UI can call it
+ * again with a chain-filtered slice without refetching anything.
+ */
+export function aggregate(
+    balances: RawBalance[],
+    spot: Record<string, number>,
+    wallets: Wallet[],
+    images: Record<string, string> = {},
+): Aggregated {
+    const bySymbol = new Map<string, AssetRow>();
+    for (const b of balances) {
+        const qty = toDecimal(b.amount, b.decimals);
+        if (qty === 0) continue;
+        const price = b.coingeckoId ? spot[b.coingeckoId] : undefined;
+        const row = bySymbol.get(b.symbol) ?? {
+            symbol: b.symbol,
+            quantity: 0,
+            usd: 0,
+            weight: 0,
+            priced: price !== undefined,
+            coingeckoId: b.coingeckoId,
+            icon: b.coingeckoId ? images[b.coingeckoId] : undefined,
+        };
+        row.quantity += qty;
+        if (price !== undefined) row.usd += qty * price;
+        else row.priced = false;
+        bySymbol.set(b.symbol, row);
+    }
+
+    const assets = Array.from(bySymbol.values()).sort((a, b) => b.usd - a.usd);
+    const totalUsd = assets.reduce((acc, a) => acc + a.usd, 0);
+    for (const a of assets) {
+        a.weight = totalUsd > 0 ? (a.usd / totalUsd) * 100 : 0;
+    }
+
+    const walletRows: WalletRow[] = wallets
+        .map((w) => {
+            const mine = balances.filter((b) => b.walletId === w.id);
+            const usd = mine.reduce((acc, b) => {
+                const price = b.coingeckoId ? spot[b.coingeckoId] : undefined;
+                if (price === undefined) return acc;
+                return acc + toDecimal(b.amount, b.decimals) * price;
+            }, 0);
+            const chains = Array.from(
+                new Set(mine.filter((b) => b.amount > 0n).map((b) => b.chainId)),
+            );
+            return { wallet: w, chains, usd };
+        })
+        .sort((a, b) => b.usd - a.usd);
+
+    return { assets, wallets: walletRows, totalUsd };
+}
+
+/** Which chains a wallet kind can appear on. */
+function chainsForWallets(wallets: Wallet[]): ChainConfig[] {
+    const kinds = new Set(wallets.map((w) => w.kind));
+    return getSupportedChains().filter((c) => kinds.has(c.kind));
+}
+
+export async function loadPortfolio(
+    settings: Settings,
+): Promise<PortfolioResult> {
+    const wallets = settings.wallets;
+    const mode: 'alchemy' | 'public' = settings.alchemyKey ? 'alchemy' : 'public';
+    const chainStatus: ChainStatus[] = [];
+    const balances: RawBalance[] = [];
+
+    // Only touch chains a saved wallet could actually exist on.
+    const targets = chainsForWallets(wallets);
+
+    await Promise.all(
+        targets.map(async (chain) => {
+            // Keeta exposes no balance endpoint we support yet; it remains
+            // fully available in Tax Export.
+            if (chain.kind === 'keeta') {
+                chainStatus.push({
+                    chainId: chain.id,
+                    state: 'unsupported',
+                    message: 'Keeta balances are not supported yet — use Tax Export.',
+                });
+                return;
+            }
+
+            const urls = resolveRpcs(chain, settings);
+            if (urls.length === 0) {
+                chainStatus.push({
+                    chainId: chain.id,
+                    state: 'unreachable',
+                    message: `No endpoint for ${chain.name}. Add an Alchemy key or a custom RPC in Settings.`,
+                });
+                return;
+            }
+
+            try {
+                if (chain.kind === 'svm') {
+                    const sol = await fetchSolanaBalances(chain, urls, wallets);
+                    balances.push(...sol.balances);
+                    chainStatus.push(
+                        sol.tokensUnavailable
+                            ? {
+                                  chainId: chain.id,
+                                  state: 'degraded',
+                                  message:
+                                      'Native SOL only — public endpoints refuse SPL token lookups. Add an Alchemy key to see your tokens.',
+                              }
+                            : { chainId: chain.id, state: 'ok' },
+                    );
+                    return;
+                } else {
+                    const client = buildEvmClient(chain, settings);
+                    if (!client) throw new Error('Could not build client');
+                    balances.push(
+                        ...(await fetchEvmBalances(client, chain, wallets)),
+                    );
+                }
+                chainStatus.push({ chainId: chain.id, state: 'ok' });
+            } catch (e) {
+                chainStatus.push({
+                    chainId: chain.id,
+                    state: 'failed',
+                    message: e instanceof Error ? e.message : 'Request failed',
+                });
+            }
+        }),
+    );
+
+    // Price everything we can name.
+    const ids = balances
+        .map((b) => b.coingeckoId)
+        .filter((x): x is string => !!x);
+    let spot: Record<string, number> = {};
+    let images: Record<string, string> = {};
+    try {
+        const market = await fetchMarketData(ids);
+        spot = market.prices;
+        images = market.images;
+    } catch {
+        // Unpriced assets still show quantities.
+    }
+
+    const { assets, wallets: walletRows, totalUsd } = aggregate(
+        balances,
+        spot,
+        wallets,
+        images,
+    );
+
+    return {
+        balances,
+        assets,
+        wallets: walletRows,
+        totalUsd,
+        chainStatus,
+        fetchedAt: Date.now(),
+        mode,
+        spot,
+        images,
+        incomplete: chainStatus.some((c) => c.state === 'failed'),
+    };
+}
+
+export interface ChartPoint {
+    t: number;
+    usd: number;
+}
+
+/**
+ * Value today's holdings at each of the last 365 days' prices.
+ *
+ * This is deliberately not true historical portfolio value — it ignores every
+ * past buy, sell and transfer. It is what the current bag would have been
+ * worth. Cheap, and honest as long as the UI says so.
+ */
+export async function buildChart(assets: AssetRow[]): Promise<ChartPoint[]> {
+    const priced = assets.filter((a) => a.coingeckoId && a.quantity > 0);
+    if (priced.length === 0) return [];
+
+    const histories = await fetchHistories(
+        priced.map((a) => a.coingeckoId as string),
+    );
+    const daily = new Map<string, Map<string, number>>();
+    for (const [id, series] of Object.entries(histories)) {
+        daily.set(id, toDailyMap(series));
+    }
+
+    // Union of all days any asset has a price for.
+    const days = new Set<string>();
+    for (const m of daily.values()) for (const d of m.keys()) days.add(d);
+    const sorted = Array.from(days).sort();
+
+    return sorted.map((day) => {
+        let usd = 0;
+        for (const a of priced) {
+            const price = daily.get(a.coingeckoId as string)?.get(day);
+            if (price !== undefined) usd += a.quantity * price;
+        }
+        return { t: Date.parse(`${day}T00:00:00Z`), usd };
+    });
+}
+
+export const chainName = (id: string): string => CHAINS[id]?.name ?? id;
