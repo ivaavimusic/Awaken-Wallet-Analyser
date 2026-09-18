@@ -16,6 +16,14 @@ export interface RawBalance {
     decimals: number;
     amount: bigint;
     coingeckoId?: string;
+    /**
+     * Price already resolved for this balance, for assets CoinGecko cannot
+     * name — Solana mints priced by Jupiter, for instance. Used only when
+     * there is no coingeckoId.
+     */
+    usdPrice?: number;
+    /** Token icon resolved alongside the price. */
+    icon?: string;
 }
 
 const multicall3Abi = [

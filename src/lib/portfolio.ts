@@ -78,7 +78,8 @@ export function aggregate(
     for (const b of balances) {
         const qty = toDecimal(b.amount, b.decimals);
         if (qty === 0) continue;
-        const price = b.coingeckoId ? spot[b.coingeckoId] : undefined;
+        // CoinGecko id first, then any price the source resolved itself.
+        const price = b.coingeckoId ? spot[b.coingeckoId] : b.usdPrice;
         const row = bySymbol.get(b.symbol) ?? {
             symbol: b.symbol,
             quantity: 0,
@@ -86,7 +87,7 @@ export function aggregate(
             weight: 0,
             priced: price !== undefined,
             coingeckoId: b.coingeckoId,
-            icon: b.coingeckoId ? images[b.coingeckoId] : undefined,
+            icon: (b.coingeckoId ? images[b.coingeckoId] : undefined) ?? b.icon,
         };
         row.quantity += qty;
         if (price !== undefined) row.usd += qty * price;
@@ -104,7 +105,7 @@ export function aggregate(
         .map((w) => {
             const mine = balances.filter((b) => b.walletId === w.id);
             const usd = mine.reduce((acc, b) => {
-                const price = b.coingeckoId ? spot[b.coingeckoId] : undefined;
+                const price = b.coingeckoId ? spot[b.coingeckoId] : b.usdPrice;
                 if (price === undefined) return acc;
                 return acc + toDecimal(b.amount, b.decimals) * price;
             }, 0);

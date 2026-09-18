@@ -6,7 +6,7 @@
 // truncated mint address, rather than dropped.
 
 import { jsonRpc } from './rpc';
-import { solanaMint } from './tokenlist';
+import { fetchJupiterTokens, fetchJupiterPrices } from './jupiter';
 import { RawBalance } from './evm';
 import { Wallet } from './settings';
 import { ChainConfig } from './chains';
@@ -54,6 +54,12 @@ export async function fetchSolanaBalances(
     }
 
     const out: RawBalance[] = [];
+    const held: {
+        walletId: string;
+        mint: string;
+        decimals: number;
+        amount: bigint;
+    }[] = [];
     let tokensUnavailable = false;
 
     for (const w of solWallets) {
@@ -91,18 +97,35 @@ export async function fetchSolanaBalances(
             if (!info) continue;
             const amount = BigInt(info.tokenAmount.amount ?? '0');
             if (amount === 0n) continue;
-            const known = solanaMint(info.mint);
-            out.push({
-                chainId: chain.id,
+            held.push({
                 walletId: w.id,
-                symbol:
-                    known?.symbol ??
-                    `${info.mint.slice(0, 4)}…${info.mint.slice(-4)}`,
+                mint: info.mint,
                 decimals: info.tokenAmount.decimals,
                 amount,
-                coingeckoId: known?.coingeckoId,
             });
         }
+    }
+
+    // Resolve every held mint at once rather than against a hardcoded list, so
+    // small-cap and brand-new tokens get a name and a price like anything else.
+    const mints = held.map((h) => h.mint);
+    const [meta, prices] = await Promise.all([
+        fetchJupiterTokens(mints),
+        fetchJupiterPrices(mints),
+    ]);
+
+    for (const h of held) {
+        const m = meta[h.mint];
+        out.push({
+            chainId: chain.id,
+            walletId: h.walletId,
+            symbol:
+                m?.symbol ?? `${h.mint.slice(0, 4)}…${h.mint.slice(-4)}`,
+            decimals: h.decimals,
+            amount: h.amount,
+            usdPrice: prices[h.mint],
+            icon: m?.icon,
+        });
     }
 
     return { balances: out, tokensUnavailable };
@@ -214,6 +237,8 @@ export async function fetchSolanaTransactions(
     );
 
     const rows: DisplayTransaction[] = [];
+    /** Row index -> mint, so every symbol can be resolved in one request. */
+    const seenMints = new Map<number, string>();
 
     wanted.forEach((sig, i) => {
         const tx = txs[i];
@@ -286,9 +311,8 @@ export async function fetchSolanaTransactions(
             const dec = decimals.get(mint) ?? 0;
             const amount = Number(d) / 10 ** dec;
             const incoming = amount > 0;
-            const known = solanaMint(mint);
-            const symbol =
-                known?.symbol ?? `${mint.slice(0, 4)}…${mint.slice(-4)}`;
+            const symbol = `${mint.slice(0, 4)}…${mint.slice(-4)}`;
+            seenMints.set(rows.length, mint);
 
             rows.push({
                 Date: date,
@@ -316,6 +340,20 @@ export async function fetchSolanaTransactions(
             });
         }
     });
+
+    // Give SPL rows real tickers instead of a truncated mint. One request for
+    // the whole export, so a large history costs no more than a small one.
+    if (seenMints.size > 0) {
+        const meta = await fetchJupiterTokens([...new Set(seenMints.values())]);
+        for (const [idx, mint] of seenMints) {
+            const symbol = meta[mint]?.symbol;
+            const row = rows[idx];
+            if (!symbol || !row) continue;
+            const direction = row.isIncoming ? 'Received' : 'Sent';
+            row.Asset = symbol;
+            row.Notes = `${direction} ${symbol}`;
+        }
+    }
 
     rows.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     return {

@@ -5,8 +5,8 @@
 // per chain. Only canonical, well-known contract addresses belong here; a
 // wrong address silently produces a wrong balance.
 //
-// Solana is exempt: getTokenAccountsByOwner enumerates holdings directly, so
-// this list is only used there to label and price what comes back.
+// Solana needs none of this: getTokenAccountsByOwner enumerates holdings
+// directly, and Jupiter resolves each mint's symbol and price — see jupiter.ts.
 
 export interface TokenDef {
     symbol: string;
@@ -109,24 +109,6 @@ export const TOKENS: Record<string, TokenDef[]> = {
     robinhood: [],
     megaeth: [],
     tempo: [],
-    solana: [
-        {
-            symbol: 'USDC',
-            address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-            decimals: 6,
-            coingeckoId: 'usd-coin',
-        },
-        {
-            symbol: 'USDT',
-            address: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
-            decimals: 6,
-            coingeckoId: 'tether',
-        },
-    ],
 };
 
 export const tokensFor = (chainId: string): TokenDef[] => TOKENS[chainId] ?? [];
-
-/** Look up a Solana mint so enumerated accounts can be labelled and priced. */
-export const solanaMint = (mint: string): TokenDef | undefined =>
-    TOKENS.solana.find((t) => t.address === mint);
