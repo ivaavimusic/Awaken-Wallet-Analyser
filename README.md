@@ -28,6 +28,7 @@ worth — combined, or one wallet at a time.
 - **Per-asset breakdown** with live prices and logos
 - **NFTs** (ERC-721 / ERC-1155) alongside your tokens
 - **Chain filters** — click a logo to scope the whole page to that network
+- **Wallet categories** — label wallets (hardware, hot, cold storage) and filter by them
 - **12-month chart** with a hover readout
 - **Tax export** — pull a wallet's history and download it as CSV
 - **Light and dark** themes
@@ -55,6 +56,7 @@ and no private key input anywhere in the codebase.
 
 | Network | Chain ID | Type | Public RPC works |
 |---|---:|---|:--:|
+| Bitcoin | — | UTXO | ✅ |
 | Ethereum | 1 | EVM | ✅ |
 | Robinhood Chain | 4663 | EVM (Arbitrum L2) | ✅ |
 | Base | 8453 | EVM | ✅ |
@@ -188,6 +190,8 @@ These are real, and deliberately visible in the UI rather than hidden:
   quantity rather than an invented value.
 - **Solana NFTs** aren't supported yet (that needs Alchemy's DAS API).
 - **NFTs are capped** at 100 per wallet per chain.
+- **Bitcoin reads a single address**, not an xpub, so it shows that address's
+  balance rather than a whole derived wallet.
 
 ## License
 

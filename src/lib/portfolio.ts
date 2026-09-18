@@ -10,6 +10,7 @@ import { buildEvmClient, resolveRpcs } from './rpc';
 import { fetchEvmBalances, toDecimal, RawBalance } from './evm';
 import { fetchSolanaBalances } from './solana';
 import { fetchHyperCoreBalances } from './hyperliquid';
+import { fetchBitcoinBalances } from './bitcoin';
 import { fetchMarketData, fetchHistories, toDailyMap } from './prices';
 
 export interface AssetRow {
@@ -162,6 +163,21 @@ export async function loadPortfolio(
             }
 
             try {
+                if (chain.kind === 'btc') {
+                    const btc = await fetchBitcoinBalances(chain, wallets);
+                    balances.push(...btc.balances);
+                    chainStatus.push(
+                        btc.failures > 0
+                            ? {
+                                  chainId: chain.id,
+                                  state: 'degraded',
+                                  message: `${btc.failures} address${btc.failures === 1 ? '' : 'es'} could not be read from the block explorers.`,
+                              }
+                            : { chainId: chain.id, state: 'ok' },
+                    );
+                    return;
+                }
+
                 if (chain.kind === 'hypercore') {
                     const hl = await fetchHyperCoreBalances(chain, wallets);
                     balances.push(...hl.balances);

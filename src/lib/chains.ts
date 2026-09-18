@@ -4,7 +4,7 @@
 // Where none is listed the network needs an Alchemy key or a user-supplied
 // endpoint added in Settings — the UI says so rather than shipping a guess.
 
-export type ChainKind = 'evm' | 'svm' | 'keeta' | 'hypercore';
+export type ChainKind = 'evm' | 'svm' | 'keeta' | 'hypercore' | 'btc';
 
 export interface ChainConfig {
     id: string;
@@ -59,6 +59,14 @@ const isKeetaAddress = (a: string) => /^keeta_[a-z0-9]+$/i.test(a.trim());
 // Solana addresses are base58, 32-44 chars, no 0/O/I/l.
 const isSolanaAddress = (a: string) =>
     /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a.trim());
+
+// Bech32 (bc1…) is unambiguous. Legacy P2PKH/P2SH is base58 like Solana, but
+// tops out at 35 characters where a Solana pubkey is almost always 43-44, so
+// length separates them in practice.
+const isBech32Btc = (a: string) => /^(bc1)[0-9ac-hj-np-z]{11,71}$/i.test(a.trim());
+const isLegacyBtc = (a: string) =>
+    /^[13][1-9A-HJ-NP-Za-km-z]{25,34}$/.test(a.trim());
+const isBitcoinAddress = (a: string) => isBech32Btc(a) || isLegacyBtc(a);
 
 export const CHAINS: Record<string, ChainConfig> = {
     ethereum: {
@@ -244,6 +252,22 @@ export const CHAINS: Record<string, ChainConfig> = {
         logoTone: 'dark',
         addressValidator: isEvmAddress,
     },
+    bitcoin: {
+        id: 'bitcoin',
+        name: 'Bitcoin',
+        displayName: 'Bitcoin',
+        kind: 'btc',
+        // Esplora instances, not an RPC: an address balance needs an index.
+        publicRpcs: ['https://blockstream.info/api', 'https://mempool.space/api'],
+        explorerUrl: 'https://mempool.space',
+        nativeSymbol: 'BTC',
+        nativeDecimals: 8,
+        coingeckoId: 'bitcoin',
+        color: '#F7931A',
+        short: '₿',
+        logo: '/assets/bitcoin.svg',
+        addressValidator: isBitcoinAddress,
+    },
     solana: {
         id: 'solana',
         name: 'Solana',
@@ -317,6 +341,7 @@ export const getChain = (id: string): ChainConfig =>
  * in registry order, so adding a chain never silently hides it.
  */
 export const CHAIN_ORDER = [
+    'bitcoin',
     'ethereum',
     'robinhood',
     'base',
@@ -396,6 +421,9 @@ export function detectKind(address: string): ChainKind | null {
     const a = address.trim();
     if (isEvmAddress(a)) return 'evm';
     if (isKeetaAddress(a)) return 'keeta';
+    // Bitcoin is checked before Solana: both are base58, and a short base58
+    // string beginning 1 or 3 is overwhelmingly a Bitcoin address.
+    if (isBitcoinAddress(a)) return 'btc';
     if (isSolanaAddress(a)) return 'svm';
     return null;
 }

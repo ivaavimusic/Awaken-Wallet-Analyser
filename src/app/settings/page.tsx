@@ -158,7 +158,7 @@ export default function SettingsPage() {
                                         onChange={(e) =>
                                             setDraft(i, { address: e.target.value })
                                         }
-                                        placeholder="0x… , base58 Solana address, or keeta_…"
+                                        placeholder="0x… , bc1… , base58 Solana address, or keeta_…"
                                         className="flex-1 font-mono text-sm"
                                     />
                                     <Button
@@ -302,7 +302,9 @@ export default function SettingsPage() {
                                             ? 'EVM'
                                             : w.kind === 'svm'
                                               ? 'Solana'
-                                              : 'Keeta'}
+                                              : w.kind === 'btc'
+                                                ? 'Bitcoin'
+                                                : 'Keeta'}
                                     </span>
                                     <button
                                         onClick={() =>

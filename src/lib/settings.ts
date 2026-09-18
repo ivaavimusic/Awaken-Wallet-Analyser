@@ -85,7 +85,10 @@ function migrate(raw: unknown): Settings {
                   typeof w.id === 'string' &&
                   typeof w.name === 'string' &&
                   typeof w.address === 'string' &&
-                  (w.kind === 'evm' || w.kind === 'svm' || w.kind === 'keeta'),
+                  (w.kind === 'evm' ||
+                      w.kind === 'svm' ||
+                      w.kind === 'keeta' ||
+                      w.kind === 'btc'),
           )
         : [];
 
@@ -160,7 +163,7 @@ export function addWallet(
     if (!kind) {
         return {
             settings: s,
-            error: 'Unrecognised address. Expected 0x… (EVM), a base58 Solana address, or keeta_…',
+            error: 'Unrecognised address. Expected 0x… (EVM), a Bitcoin address, a base58 Solana address, or keeta_…',
         };
     }
     if (s.wallets.some((w) => w.address.toLowerCase() === addr.toLowerCase())) {
