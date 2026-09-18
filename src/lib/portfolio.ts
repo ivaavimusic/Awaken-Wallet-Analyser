@@ -237,7 +237,11 @@ export interface ChartPoint {
  * past buy, sell and transfer. It is what the current bag would have been
  * worth. Cheap, and honest as long as the UI says so.
  */
-export async function buildChart(assets: AssetRow[]): Promise<ChartPoint[]> {
+export async function buildChart(
+    assets: AssetRow[],
+    /** Clamp the series to on/after this time, when first activity is known. */
+    since?: number | null,
+): Promise<ChartPoint[]> {
     const priced = assets.filter((a) => a.coingeckoId && a.quantity > 0);
     if (priced.length === 0) return [];
 
@@ -254,7 +258,7 @@ export async function buildChart(assets: AssetRow[]): Promise<ChartPoint[]> {
     for (const m of daily.values()) for (const d of m.keys()) days.add(d);
     const sorted = Array.from(days).sort();
 
-    return sorted.map((day) => {
+    const points = sorted.map((day) => {
         let usd = 0;
         for (const a of priced) {
             const price = daily.get(a.coingeckoId as string)?.get(day);
@@ -262,6 +266,13 @@ export async function buildChart(assets: AssetRow[]): Promise<ChartPoint[]> {
         }
         return { t: Date.parse(`${day}T00:00:00Z`), usd };
     });
+
+    if (typeof since !== 'number') return points;
+
+    // Drop days before the wallet existed. Keep at least two points so a very
+    // new wallet still renders a line rather than collapsing to nothing.
+    const clamped = points.filter((p) => p.t >= since);
+    return clamped.length >= 2 ? clamped : points.slice(-2);
 }
 
 export const chainName = (id: string): string => CHAINS[id]?.name ?? id;

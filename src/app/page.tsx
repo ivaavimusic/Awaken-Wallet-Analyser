@@ -29,6 +29,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getScopeFirstSeen } from '@/lib/firstseen';
 import { TokenLogo } from '@/components/TokenLogo';
 import { WalletAvatar } from '@/components/WalletAvatar';
 
@@ -66,6 +67,8 @@ export default function PortfolioPage() {
     const [selected, setSelected] = useState<string[]>([]);
     /** null = every wallet combined. */
     const [walletId, setWalletId] = useState<string | null>(null);
+    /** Earliest on-chain activity in the current scope, if determinable. */
+    const [firstSeen, setFirstSeen] = useState<number | null>(null);
 
     useEffect(() => {
         setSettings(loadSettings());
@@ -141,15 +144,31 @@ export default function PortfolioPage() {
     const activeWallet =
         settings?.wallets.find((w) => w.id === walletId) ?? null;
 
-    // A wallet chart needs that wallet's own holdings, not the whole portfolio.
+    // A wallet chart needs that wallet's own holdings, not the whole portfolio,
+    // and must not draw a line from before those wallets existed.
     useEffect(() => {
-        if (!view) return;
+        if (!view || !settings || !data) return;
         let cancelled = false;
         setChartLoading(true);
-        buildChart(view.assets)
-            .then((pts) => !cancelled && setChart(pts))
+
+        const scopeWallets = walletId
+            ? settings.wallets.filter((w) => w.id === walletId)
+            : settings.wallets;
+        const chainsByWallet = Object.fromEntries(
+            data.wallets.map((w) => [w.wallet.id, w.chains]),
+        );
+
+        getScopeFirstSeen(scopeWallets, chainsByWallet, settings)
+            .catch(() => null)
+            .then((since) => {
+                if (cancelled) return null;
+                setFirstSeen(since);
+                return buildChart(view.assets, since);
+            })
+            .then((pts) => !cancelled && pts && setChart(pts))
             .catch(() => !cancelled && setChart([]))
             .finally(() => !cancelled && setChartLoading(false));
+
         return () => {
             cancelled = true;
         };
@@ -338,6 +357,11 @@ export default function PortfolioPage() {
                             points={chart}
                             snapshots={settings?.snapshots}
                             loading={chartLoading}
+                            firstSeen={firstSeen}
+                            canDetectFirstSeen={
+                                data?.mode === 'alchemy' ||
+                                activeWallet?.kind === 'svm'
+                            }
                         />
 
                         {/* Assets */}

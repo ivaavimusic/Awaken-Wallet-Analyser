@@ -13,6 +13,10 @@ interface PortfolioChartProps {
     points: ChartPoint[];
     snapshots?: Snapshot[];
     loading?: boolean;
+    /** Earliest known on-chain activity in the current scope. */
+    firstSeen?: number | null;
+    /** Whether first activity is knowable here at all (needs an Alchemy key on EVM). */
+    canDetectFirstSeen?: boolean;
 }
 
 const money = (n: number) =>
@@ -26,6 +30,8 @@ export function PortfolioChart({
     points,
     snapshots = [],
     loading,
+    firstSeen,
+    canDetectFirstSeen = false,
 }: PortfolioChartProps) {
     const [hover, setHover] = useState<number | null>(null);
 
@@ -61,6 +67,23 @@ export function PortfolioChart({
         return { line, area, x, y, dots, lo, hi };
     }, [points, snapshots]);
 
+    const spanDays =
+        points.length > 1
+            ? Math.round(
+                  (points[points.length - 1].t - points[0].t) / 86_400_000,
+              )
+            : 0;
+    const plural = (n: number, unit: string) =>
+        `${n} ${unit}${n === 1 ? '' : 's'}`;
+    const rangeLabel =
+        spanDays >= 360
+            ? 'Last 12 months'
+            : spanDays >= 60
+              ? `Last ${plural(Math.round(spanDays / 30), 'month')}`
+              : spanDays > 0
+                ? `Last ${plural(spanDays, 'day')}`
+                : 'Value';
+
     const first = points[0]?.usd ?? 0;
     const last = points[points.length - 1]?.usd ?? 0;
     const change = first > 0 ? ((last - first) / first) * 100 : 0;
@@ -71,7 +94,7 @@ export function PortfolioChart({
             <div className="flex items-start justify-between mb-4">
                 <div>
                     <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
-                        <span>Last 12 months</span>
+                        <span>{rangeLabel}</span>
                         <span
                             className="inline-flex"
                             title="Your current holdings valued at each day's historical price. This is not true historical portfolio value — it ignores past buys, sells and transfers. Dots are real snapshots recorded on each refresh."
@@ -98,7 +121,10 @@ export function PortfolioChart({
                                       }
                                   >
                                       {change >= 0 ? '▲' : '▼'}{' '}
-                                      {Math.abs(change).toFixed(1)}% over the year
+                                      {Math.abs(change).toFixed(1)}% over{' '}
+                                      {spanDays >= 360
+                                          ? 'the year'
+                                          : plural(spanDays, 'day')}
                                   </span>
                               )}
                     </div>
@@ -193,6 +219,22 @@ export function PortfolioChart({
                 Current holdings valued at historical prices — not true historical
                 portfolio value. Past buys, sells and transfers are not reflected.
                 Dots mark real totals recorded on each refresh.
+                {typeof firstSeen === 'number' ? (
+                    <>
+                        {' '}Clipped to first on-chain activity (
+                        {new Date(firstSeen).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                        })}
+                        ).
+                    </>
+                ) : !canDetectFirstSeen ? (
+                    <>
+                        {' '}The wallet&apos;s age is unknown without an Alchemy key, so
+                        this may draw a line from before it existed.
+                    </>
+                ) : null}
             </p>
         </Card>
     );

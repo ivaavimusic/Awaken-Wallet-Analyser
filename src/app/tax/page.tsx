@@ -11,8 +11,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown, Download, Layers, Search } from 'lucide-react';
 import { downloadCSV } from '@/lib/csv';
-import { getSupportedChains, getChain } from '@/lib/chains';
+import { getSupportedChains, getChain, DEFAULT_CHAIN } from '@/lib/chains';
 import { getKeetaTransactions } from '@/lib/keeta';
+import { fetchSolanaTransactions } from '@/lib/solana';
+import { resolveRpcs } from '@/lib/rpc';
 import { fetchAlchemyTransfers, fetchBlockscoutTransfers } from '@/lib/transfers';
 import { loadSettings } from '@/lib/settings';
 import { Navbar } from '@/components/Navbar';
@@ -22,15 +24,31 @@ import { DisplayTransaction } from '@/types';
 
 const ITEMS_PER_PAGE = 25;
 
+/** Keep small balances legible instead of rounding them to 0.0000. */
+const formatAmount = (n: number): string => {
+    if (n === 0) return '0';
+    if (Math.abs(n) >= 0.0001) {
+        return n.toLocaleString('en-US', { maximumFractionDigits: 4 });
+    }
+    return n.toLocaleString('en-US', { maximumFractionDigits: 9 });
+};
+
 export default function TaxExportPage() {
     const [address, setAddress] = useState('');
     const [transactions, setTransactions] = useState<DisplayTransaction[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [chainId, setChainId] = useState('megaeth');
+    const [chainId, setChainId] = useState(DEFAULT_CHAIN);
     const [hasSearched, setHasSearched] = useState(false);
     const [page, setPage] = useState(1);
     const [alchemyKey, setAlchemyKey] = useState('');
+    /** Non-fatal caveat about the result set, e.g. truncation. */
+    const [notice, setNotice] = useState('');
+    /**
+     * Whether the source reports fees at all. Inferring this from "every fee
+     * is 0" is wrong: a wallet that only ever received really did pay nothing.
+     */
+    const [feesKnown, setFeesKnown] = useState(true);
 
     const chains = getSupportedChains();
     const chain = getChain(chainId);
@@ -44,6 +62,7 @@ export default function TaxExportPage() {
         setChainId(id);
         setTransactions([]);
         setError('');
+        setNotice('');
         setHasSearched(false);
         setAddress('');
         setPage(1);
@@ -56,6 +75,7 @@ export default function TaxExportPage() {
 
         setLoading(true);
         setError('');
+        setNotice('');
         setHasSearched(true);
         setTransactions([]);
         setPage(1);
@@ -75,14 +95,36 @@ export default function TaxExportPage() {
 
             let rows: DisplayTransaction[] = [];
             if (chain.kind === 'keeta') {
+                setFeesKnown(true);
                 rows = await getKeetaTransactions(addr);
             } else if (chain.kind === 'svm') {
-                throw new Error(
-                    'Solana tax export is not implemented yet — its transaction model needs separate handling. Solana balances do work in Portfolio.',
+                setFeesKnown(true);
+                const history = await fetchSolanaTransactions(
+                    chain,
+                    resolveRpcs(chain, loadSettings()),
+                    addr,
                 );
+                rows = history.transactions;
+                if (history.truncated || history.failed > 0) {
+                    setNotice(
+                        [
+                            history.truncated
+                                ? 'Showing the most recent 200 transactions.'
+                                : '',
+                            history.failed > 0
+                                ? `${history.failed} transaction${history.failed === 1 ? '' : 's'} could not be fetched and are missing.`
+                                : '',
+                        ]
+                            .filter(Boolean)
+                            .join(' '),
+                    );
+                }
             } else if (chain.id === 'megaeth') {
+                setFeesKnown(true);
                 rows = await fetchBlockscoutTransfers(chain, addr);
             } else {
+                // alchemy_getAssetTransfers carries no fee data.
+                setFeesKnown(false);
                 rows = await fetchAlchemyTransfers(chain, addr, alchemyKey);
             }
 
@@ -115,11 +157,6 @@ export default function TaxExportPage() {
         transactions.map((tx) => new Date(tx.timestamp).toDateString()),
     ).size;
 
-    // Alchemy's transfer API carries no fee data, so a 0 here means "unknown",
-    // not "free". Saying so beats implying this wallet never paid gas.
-    const hasFeeData = transactions.some(
-        (tx) => parseFloat(tx.Fee || '0') > 0,
-    );
     const totalGas = transactions.reduce(
         (acc, tx) => acc + parseFloat(tx.Fee || '0'),
         0,
@@ -213,24 +250,33 @@ export default function TaxExportPage() {
                             </div>
                         </div>
                     )}
+                    {notice && (
+                        <div className="mt-3 p-3 rounded-lg bg-muted/40 border border-border/20 text-xs text-muted-foreground">
+                            {notice}
+                        </div>
+                    )}
                 </div>
 
                 <StatsGrid
                     transactionCount={transactions.length}
                     uniqueDays={uniqueDays}
-                    totalVolume={`${nativeVolume.toFixed(4)} ${chain.nativeSymbol}`}
+                    totalVolume={`${formatAmount(nativeVolume)} ${chain.nativeSymbol}`}
                     volumeNote={
                         otherAssetCount > 0
                             ? `native only · ${otherAssetCount} other asset${otherAssetCount === 1 ? '' : 's'} not summed`
                             : undefined
                     }
                     gasSpent={
-                        hasFeeData
+                        feesKnown
                             ? `${totalGas.toFixed(6)} ${chain.nativeSymbol}`
                             : 'Not reported'
                     }
                     gasNote={
-                        hasFeeData ? undefined : 'this source returns no fee data'
+                        feesKnown
+                            ? totalGas === 0 && transactions.length > 0
+                                ? 'no fees paid by this address'
+                                : undefined
+                            : 'this source returns no fee data'
                     }
                     dailyActivity={transactions}
                     className="mb-2"
