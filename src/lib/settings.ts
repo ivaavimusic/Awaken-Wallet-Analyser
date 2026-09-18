@@ -80,17 +80,29 @@ function migrate(raw: unknown): Settings {
     const o = raw as Partial<Settings>;
 
     const wallets = Array.isArray(o.wallets)
-        ? o.wallets.filter(
-              (w): w is Wallet =>
-                  !!w &&
-                  typeof w.id === 'string' &&
-                  typeof w.name === 'string' &&
-                  typeof w.address === 'string' &&
-                  (w.kind === 'evm' ||
-                      w.kind === 'svm' ||
-                      w.kind === 'keeta' ||
-                      w.kind === 'btc'),
-          )
+        ? o.wallets
+              .filter(
+                  (w): w is Wallet =>
+                      !!w &&
+                      typeof w.id === 'string' &&
+                      typeof w.name === 'string' &&
+                      typeof w.address === 'string' &&
+                      (w.kind === 'evm' ||
+                          w.kind === 'svm' ||
+                          w.kind === 'keeta' ||
+                          w.kind === 'btc'),
+              )
+              // Re-derive the network from the address. A wallet saved before
+              // Bitcoin was supported was filed as Solana, because a base58
+              // Bitcoin address matched the old, looser Solana check — and one
+              // such entry breaks the batched Solana call for every wallet.
+              // Detection is authoritative; the stored kind is only a fallback.
+              .map((w) => {
+                  const detected = detectKind(w.address);
+                  return detected && detected !== w.kind
+                      ? { ...w, kind: detected }
+                      : w;
+              })
         : [];
 
     const rpcs: Record<string, string[]> = {};
