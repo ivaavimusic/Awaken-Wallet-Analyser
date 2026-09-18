@@ -19,6 +19,8 @@ import {
     loadPortfolio,
     buildChart,
     aggregate,
+    toCache,
+    fromCache,
     PortfolioResult,
     ChartPoint,
 } from '@/lib/portfolio';
@@ -32,6 +34,8 @@ import {
 import { getScopeFirstSeen } from '@/lib/firstseen';
 import { TokenLogo } from '@/components/TokenLogo';
 import { WalletAvatar } from '@/components/WalletAvatar';
+import { NftGrid } from '@/components/NftGrid';
+import { loadNfts, NftResult } from '@/lib/nfts';
 
 const money = (n: number) =>
     n.toLocaleString('en-US', {
@@ -69,6 +73,11 @@ export default function PortfolioPage() {
     const [walletId, setWalletId] = useState<string | null>(null);
     /** Earliest on-chain activity in the current scope, if determinable. */
     const [firstSeen, setFirstSeen] = useState<number | null>(null);
+    /** True while showing restored figures that have not been re-fetched. */
+    const [stale, setStale] = useState(false);
+    const [assetTab, setAssetTab] = useState<'tokens' | 'nfts'>('tokens');
+    const [nfts, setNfts] = useState<NftResult | null>(null);
+    const [nftsLoading, setNftsLoading] = useState(false);
 
     useEffect(() => {
         setSettings(loadSettings());
@@ -86,13 +95,16 @@ export default function PortfolioPage() {
             try {
                 const result = await loadPortfolio(s);
                 setData(result);
+                setStale(false);
 
-                // Record a real snapshot of the true total.
+                // Persist the result so reopening the app costs no RPC calls,
+                // and record a real snapshot of the true total.
+                let next: Settings = { ...s, cache: toCache(result) };
                 if (result.totalUsd > 0 && !result.incomplete) {
-                    const next = appendSnapshot(s, result.totalUsd);
-                    saveSettings(next);
-                    setSettings(next);
+                    next = appendSnapshot(next, result.totalUsd);
                 }
+                saveSettings(next);
+                setSettings(next);
 
                 // The chart is rebuilt by the filter effect, which knows the
                 // active wallet/chain scope.
@@ -105,13 +117,21 @@ export default function PortfolioPage() {
         [],
     );
 
-    // Load once settings are available.
+    // Show the cached portfolio instantly and make no network calls; only fetch
+    // when there is nothing cached. Refreshing is the user's decision.
     useEffect(() => {
-        if (settings && !data && settings.wallets.length > 0) {
-            void refresh(settings);
+        if (!settings || data || settings.wallets.length === 0) return;
+        if (settings.cache) {
+            const restored = fromCache(settings.cache, settings.wallets);
+            if (restored) {
+                setData(restored);
+                setStale(true);
+                return;
+            }
         }
+        void refresh(settings);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [settings?.wallets.length]);
+    }, [settings?.wallets.length, settings?.cache?.fetchedAt]);
 
     const toggleChain = (id: string) =>
         setSelected((prev) =>
@@ -175,6 +195,25 @@ export default function PortfolioPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [walletId, selected.join(','), data?.fetchedAt]);
 
+    // NFTs are fetched only when the tab is actually opened, so the default
+    // view never pays for them.
+    useEffect(() => {
+        if (assetTab !== 'nfts' || nfts || nftsLoading || !settings) return;
+        setNftsLoading(true);
+        loadNfts(settings)
+            .then(setNfts)
+            .catch(() =>
+                setNfts({
+                    items: [],
+                    problems: [],
+                    needsKey: !settings.alchemyKey,
+                    truncated: false,
+                }),
+            )
+            .finally(() => setNftsLoading(false));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [assetTab, settings?.alchemyKey]);
+
     const chains = getSupportedChains();
     const problems = data?.chainStatus.filter((c) => c.state !== 'ok') ?? [];
     const hasWallets = (settings?.wallets.length ?? 0) > 0;
@@ -217,6 +256,7 @@ export default function PortfolioPage() {
                                 <div className="text-xs text-muted-foreground mt-1">
                                     {data ? (
                                         <>
+                                            {stale ? 'cached · ' : ''}
                                             updated {ago(data.fetchedAt)} ·{' '}
                                             {data.mode === 'alchemy'
                                                 ? 'Alchemy key — full token discovery'
@@ -366,9 +406,35 @@ export default function PortfolioPage() {
 
                         {/* Assets */}
                         <Card className="border-0 bg-card text-card-foreground overflow-hidden">
-                            <div className="px-6 pt-5 pb-3">
+                            <div className="px-6 pt-5 pb-3 flex items-center justify-between gap-4">
                                 <h2 className="font-bold">Assets</h2>
+                                <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-0.5">
+                                    {(['tokens', 'nfts'] as const).map((t) => (
+                                        <button
+                                            key={t}
+                                            onClick={() => setAssetTab(t)}
+                                            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                                                assetTab === t
+                                                    ? 'bg-card text-foreground shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground'
+                                            }`}
+                                        >
+                                            {t === 'tokens' ? 'Tokens' : 'NFTs'}
+                                            {t === 'nfts' && nfts?.items.length
+                                                ? ` (${nfts.items.length})`
+                                                : ''}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
+                            {assetTab === 'nfts' ? (
+                                <NftGrid
+                                    result={nfts}
+                                    loading={nftsLoading}
+                                    selectedChains={selected}
+                                    walletId={walletId}
+                                />
+                            ) : (
                             <div className="px-4 pb-2 overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
@@ -435,6 +501,7 @@ export default function PortfolioPage() {
                                     </tbody>
                                 </table>
                             </div>
+                            )}
                         </Card>
 
                         {/* Wallets */}

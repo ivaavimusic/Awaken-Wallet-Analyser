@@ -28,11 +28,11 @@ export function Navbar({ children }: { children?: React.ReactNode }) {
                     <Link href="/" className="flex items-center gap-3">
                         <img
                             src="/logo_bunnyAnalyzer.svg"
-                            alt="Bunny Portfolio"
+                            alt="OpenPort"
                             className={`h-8 w-auto ${isDark ? 'brightness-0 invert' : ''}`}
                         />
                         <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">
-                            Bunny Portfolio
+                            OpenPort
                         </h1>
                     </Link>
 

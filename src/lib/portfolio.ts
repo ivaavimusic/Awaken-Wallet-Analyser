@@ -5,7 +5,7 @@
 // a confidently wrong one.
 
 import { CHAINS, ChainConfig, getSupportedChains } from './chains';
-import { Settings, Wallet } from './settings';
+import { CachedPortfolio, Settings, Wallet } from './settings';
 import { buildEvmClient, resolveRpcs } from './rpc';
 import { fetchEvmBalances, toDecimal, RawBalance } from './evm';
 import { fetchSolanaBalances } from './solana';
@@ -276,3 +276,64 @@ export async function buildChart(
 }
 
 export const chainName = (id: string): string => CHAINS[id]?.name ?? id;
+
+/* ------------------------------------------------------------------ *
+ * Caching. Reopening the app should cost nothing; refresh is explicit.
+ * ------------------------------------------------------------------ */
+
+export function toCache(r: PortfolioResult): CachedPortfolio {
+    return {
+        fetchedAt: r.fetchedAt,
+        mode: r.mode,
+        // bigint has no JSON form, so amounts round-trip as decimal strings.
+        balances: r.balances.map((b) => ({
+            chainId: b.chainId,
+            walletId: b.walletId,
+            symbol: b.symbol,
+            decimals: b.decimals,
+            amount: b.amount.toString(),
+            coingeckoId: b.coingeckoId,
+        })),
+        spot: r.spot,
+        images: r.images,
+        chainStatus: r.chainStatus,
+    };
+}
+
+export function fromCache(
+    c: CachedPortfolio,
+    wallets: Wallet[],
+): PortfolioResult | null {
+    try {
+        const balances: RawBalance[] = c.balances.map((b) => ({
+            chainId: b.chainId,
+            walletId: b.walletId,
+            symbol: b.symbol,
+            decimals: b.decimals,
+            amount: BigInt(b.amount),
+            coingeckoId: b.coingeckoId,
+        }));
+        const chainStatus = c.chainStatus as ChainStatus[];
+        const { assets, wallets: walletRows, totalUsd } = aggregate(
+            balances,
+            c.spot,
+            wallets,
+            c.images,
+        );
+        return {
+            balances,
+            assets,
+            wallets: walletRows,
+            totalUsd,
+            chainStatus,
+            fetchedAt: c.fetchedAt,
+            mode: c.mode,
+            spot: c.spot,
+            images: c.images,
+            incomplete: chainStatus.some((x) => x.state === 'failed'),
+        };
+    } catch {
+        // A malformed cache must never block a real load.
+        return null;
+    }
+}

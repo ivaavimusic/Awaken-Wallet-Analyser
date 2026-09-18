@@ -1,4 +1,4 @@
-// Network registry for Bunny Portfolio.
+// Network registry for OpenPort.
 //
 // `publicRpcs` only lists endpoints known to exist and to be openly usable.
 // Where none is listed the network needs an Alchemy key or a user-supplied
@@ -36,6 +36,12 @@ export interface ChainConfig {
      * Omit for full-colour logos, which work as-is on either background.
      */
     logoTone?: 'dark' | 'light';
+    /**
+     * Brand background for marks that are a solid glyph on a coloured tile.
+     * Set this instead of logoTone — the tile keeps the glyph legible on both
+     * themes without inverting it away from the brand colour.
+     */
+    logoBg?: string;
     addressValidator: (address: string) => boolean;
 }
 
@@ -148,7 +154,7 @@ export const CHAINS: Record<string, ChainConfig> = {
         color: '#CCFF00',
         short: 'R',
         logo: '/assets/robinhood.svg',
-        logoTone: 'dark',
+        logoBg: '#CCFF00',
         addressValidator: isEvmAddress,
     },
     blast: {

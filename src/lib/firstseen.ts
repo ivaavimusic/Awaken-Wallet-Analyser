@@ -10,7 +10,7 @@ import { ChainConfig, alchemyRpcUrl, getChain } from './chains';
 import { Settings, Wallet } from './settings';
 import { jsonRpc, resolveRpcs } from './rpc';
 
-const CACHE_PREFIX = 'bunny-firstseen:';
+const CACHE_PREFIX = 'openport-firstseen:';
 
 function readCache(address: string): number | null | undefined {
     if (typeof window === 'undefined') return undefined;

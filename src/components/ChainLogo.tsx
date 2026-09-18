@@ -25,6 +25,29 @@ export function ChainLogo({
     const px = { width: size, height: size };
 
     if (chain.logo && !failed) {
+        // A brand tile keeps the glyph on its own colour in both themes.
+        if (chain.logoBg) {
+            return (
+                <span
+                    style={{
+                        ...px,
+                        backgroundColor: chain.logoBg,
+                        padding: size * 0.16,
+                    }}
+                    className={`rounded-full flex items-center justify-center shrink-0 transition-opacity ${
+                        muted ? 'opacity-40 grayscale' : ''
+                    } ${className}`}
+                >
+                    <img
+                        src={chain.logo}
+                        alt={`${chain.name} logo`}
+                        onError={() => setFailed(true)}
+                        className="w-full h-full object-contain"
+                    />
+                </span>
+            );
+        }
+
         // Single-colour marks would otherwise vanish against one of the themes.
         const tone =
             chain.logoTone === 'dark'

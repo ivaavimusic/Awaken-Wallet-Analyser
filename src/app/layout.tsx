@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Bunny Portfolio | Multi-chain portfolio manager",
+  title: "OpenPort | Multi-chain portfolio manager",
   description: "Open-source personal portfolio manager for Ethereum, Base, Robinhood Chain, Solana, MegaETH and Keeta. Runs on public RPCs, stores everything in your browser.",
   keywords: ["portfolio", "Ethereum", "Base", "Robinhood Chain", "Solana", "MegaETH", "Keeta", "wallet", "crypto", "Awaken", "tax", "CSV"],
   authors: [{ name: "Event Horizon Labs" }],
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
   manifest: "/favicon_io/site.webmanifest",
   openGraph: {
-    title: "Bunny Portfolio",
+    title: "OpenPort",
     description: "Open-source personal multi-chain portfolio manager.",
     type: "website",
   },

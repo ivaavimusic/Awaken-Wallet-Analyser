@@ -57,7 +57,7 @@ export async function fetchMarketData(ids: string[]): Promise<MarketData> {
     const unique = Array.from(new Set(ids.filter(Boolean))).sort();
     if (unique.length === 0) return { prices: {}, images: {} };
 
-    const key = `bunny-mkt:${unique.join(',')}`;
+    const key = `openport-mkt:${unique.join(',')}`;
     const cached = readCache<MarketData>(key, SPOT_TTL_MS);
     if (cached) return cached;
 
@@ -86,7 +86,7 @@ export async function fetchMarketData(ids: string[]): Promise<MarketData> {
 /** Daily USD series for the last year. */
 export async function fetchPriceHistory(id: string): Promise<PriceSeries> {
     if (!id) return [];
-    const key = `bunny-hist:${id}`;
+    const key = `openport-hist:${id}`;
     const cached = readCache<PriceSeries>(key, HISTORY_TTL_MS);
     if (cached) return cached;
 

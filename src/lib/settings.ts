@@ -4,7 +4,9 @@
 
 import { ChainKind, detectKind } from './chains';
 
-const STORAGE_KEY = 'bunny-portfolio';
+const STORAGE_KEY = 'openport';
+/** Previous name. Read once so an existing install keeps its wallets and key. */
+const LEGACY_STORAGE_KEY = 'bunny-portfolio';
 export const SETTINGS_VERSION = 1;
 
 export interface Wallet {
@@ -20,6 +22,26 @@ export interface Snapshot {
     usd: number;
 }
 
+/**
+ * Last fetched portfolio, so reopening the app costs no RPC calls.
+ * `amount` is a decimal string because bigint has no JSON representation.
+ */
+export interface CachedPortfolio {
+    fetchedAt: number;
+    mode: 'alchemy' | 'public';
+    balances: {
+        chainId: string;
+        walletId: string;
+        symbol: string;
+        decimals: number;
+        amount: string;
+        coingeckoId?: string;
+    }[];
+    spot: Record<string, number>;
+    images: Record<string, string>;
+    chainStatus: { chainId: string; state: string; message?: string }[];
+}
+
 export interface Settings {
     version: number;
     alchemyKey: string;
@@ -27,6 +49,7 @@ export interface Settings {
     /** chain id -> ordered custom endpoints, tried after the public ones. */
     rpcs: Record<string, string[]>;
     snapshots: Snapshot[];
+    cache?: CachedPortfolio;
 }
 
 export const emptySettings = (): Settings => ({
@@ -70,21 +93,36 @@ function migrate(raw: unknown): Settings {
           )
         : [];
 
+    const cache =
+        o.cache &&
+        typeof o.cache === 'object' &&
+        Array.isArray((o.cache as CachedPortfolio).balances)
+            ? (o.cache as CachedPortfolio)
+            : undefined;
+
     return {
         version: SETTINGS_VERSION,
         alchemyKey: typeof o.alchemyKey === 'string' ? o.alchemyKey : '',
         wallets,
         rpcs,
         snapshots,
+        cache,
     };
 }
 
 export function loadSettings(): Settings {
     if (typeof window === 'undefined') return emptySettings();
     try {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
+        const raw =
+            window.localStorage.getItem(STORAGE_KEY) ??
+            window.localStorage.getItem(LEGACY_STORAGE_KEY);
         if (!raw) return emptySettings();
-        return migrate(JSON.parse(raw));
+        const parsed = migrate(JSON.parse(raw));
+        if (!window.localStorage.getItem(STORAGE_KEY)) {
+            // Carry the old install forward, then leave the legacy copy alone.
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        }
+        return parsed;
     } catch {
         // Corrupt storage must never brick the app.
         return emptySettings();
@@ -122,12 +160,16 @@ export function addWallet(
         address: addr,
         kind,
     };
-    return { settings: { ...s, wallets: [...s.wallets, wallet] } };
+    return {
+        settings: { ...s, wallets: [...s.wallets, wallet], cache: undefined },
+    };
 }
 
 export const removeWallet = (s: Settings, id: string): Settings => ({
     ...s,
     wallets: s.wallets.filter((w) => w.id !== id),
+    // Cached totals included this wallet; they are wrong the moment it goes.
+    cache: undefined,
 });
 
 export const renameWallet = (s: Settings, id: string, name: string): Settings => ({
@@ -180,7 +222,7 @@ export function exportSettings(s: Settings): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `bunny-portfolio-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `openport-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
 }
