@@ -101,6 +101,13 @@ export function NftGrid({
         );
     }
 
+    const problems = result?.problems ?? [];
+    const disabled = problems.filter((p) => p.kind === 'disabled');
+    const unsupported = problems.filter((p) => p.kind === 'unsupported');
+    const errored = problems.filter((p) => p.kind === 'error');
+    const names = (list: typeof problems) =>
+        list.map((p) => CHAINS[p.chainId]?.name ?? p.chainId).join(', ');
+
     const items = (result?.items ?? []).filter(
         (n) =>
             (selectedChains.length === 0 || selectedChains.includes(n.chainId)) &&
@@ -109,13 +116,33 @@ export function NftGrid({
 
     return (
         <div className="px-6 pb-6">
-            {result && result.problems.length > 0 && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 mb-3">
-                    Could not read NFTs on{' '}
-                    {result.problems
-                        .map((p) => CHAINS[p.chainId]?.name ?? p.chainId)
-                        .join(', ')}
-                    .
+            {disabled.length > 0 && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 mb-2">
+                    {names(disabled)} {disabled.length === 1 ? 'is' : 'are'} most
+                    likely switched off for your Alchemy app — enable the{' '}
+                    {disabled.length === 1 ? 'network' : 'networks'} in the{' '}
+                    <a
+                        href="https://dashboard.alchemy.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline"
+                    >
+                        Alchemy dashboard
+                    </a>{' '}
+                    to see NFTs there.
+                </p>
+            )}
+
+            {unsupported.length > 0 && (
+                <p className="text-[11px] text-muted-foreground mb-2">
+                    Alchemy has no NFT API for {names(unsupported)} yet, so nothing
+                    can be listed there.
+                </p>
+            )}
+
+            {errored.length > 0 && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 mb-2">
+                    Could not read NFTs on {names(errored)}.
                 </p>
             )}
 
@@ -132,13 +159,15 @@ export function NftGrid({
                     {selectedChains.length > 0 || walletId ? ' for this filter' : ''}.
                 </p>
             ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {items.map((n) => (
-                        <NftTile
-                            key={`${n.chainId}-${n.contract}-${n.tokenId}-${n.walletId}`}
-                            item={n}
-                        />
-                    ))}
+                <div className="max-h-[440px] overflow-y-auto pr-1 -mr-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        {items.map((n) => (
+                            <NftTile
+                                key={`${n.chainId}-${n.contract}-${n.tokenId}-${n.walletId}`}
+                                item={n}
+                            />
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

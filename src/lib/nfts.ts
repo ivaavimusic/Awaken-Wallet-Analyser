@@ -25,10 +25,24 @@ export interface NftItem {
     balance: string;
 }
 
+/**
+ * Why a chain produced no NFTs.
+ * 'disabled'    - the network is toggled off on the user's Alchemy app; fixable.
+ * 'unsupported' - Alchemy's NFT API has no support for this chain at all.
+ * 'error'       - anything else.
+ */
+export type NftFailure = 'disabled' | 'unsupported' | 'error';
+
+export interface NftProblem {
+    chainId: string;
+    kind: NftFailure;
+    message: string;
+}
+
 export interface NftResult {
     items: NftItem[];
     /** Chains that could not be read, with why. */
-    problems: { chainId: string; message: string }[];
+    problems: NftProblem[];
     /** True when no chain could be queried at all (no key). */
     needsKey: boolean;
     /** True when a wallet holds more than one page and we stopped early. */
@@ -68,8 +82,39 @@ async function fetchChainNfts(
             `https://${chain.alchemySlug}.g.alchemy.com/nft/v3/${key}/getNFTsForOwner` +
             `?owner=${w.address}&withMetadata=true&pageSize=${PAGE_SIZE}`;
 
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        let res: Response;
+        try {
+            res = await fetch(url);
+        } catch {
+            // Alchemy answers a disabled network with a 403 that carries no CORS
+            // headers, so the browser blocks it and we never see the body. For a
+            // chain Alchemy's NFT API does cover, that is what this means.
+            const err = new Error(
+                'Blocked before a response could be read',
+            ) as Error & { kind?: NftFailure };
+            err.kind = 'disabled';
+            throw err;
+        }
+
+        if (!res.ok) {
+            // Alchemy distinguishes "you haven't switched this network on" from
+            // "this chain has no NFT API". Only the first one is actionable.
+            const body = await res.text();
+            const disabled = /not enabled for this app/i.test(body);
+            const unsupported =
+                /isn'?t enabled for that chain|not enabled for that chain/i.test(
+                    body,
+                );
+            const err = new Error(`HTTP ${res.status}`) as Error & {
+                kind?: NftFailure;
+            };
+            err.kind = disabled
+                ? 'disabled'
+                : unsupported
+                  ? 'unsupported'
+                  : 'error';
+            throw err;
+        }
         const json = (await res.json()) as {
             ownedNfts?: AlchemyNft[];
             pageKey?: string;
@@ -120,7 +165,7 @@ export async function loadNfts(settings: Settings): Promise<NftResult> {
     );
 
     const items: NftItem[] = [];
-    const problems: { chainId: string; message: string }[] = [];
+    const problems: NftProblem[] = [];
     let truncated = false;
 
     await Promise.all(
@@ -130,9 +175,13 @@ export async function loadNfts(settings: Settings): Promise<NftResult> {
                 items.push(...r.items);
                 if (r.truncated) truncated = true;
             } catch (e) {
+                const kind =
+                    (e as { kind?: NftFailure })?.kind ?? 'error';
                 problems.push({
                     chainId: chain.id,
-                    message: e instanceof Error ? e.message : 'Request failed',
+                    kind,
+                    message:
+                        e instanceof Error ? e.message : 'Request failed',
                 });
             }
         }),
