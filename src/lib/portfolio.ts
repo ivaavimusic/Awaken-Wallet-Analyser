@@ -9,6 +9,7 @@ import { CachedPortfolio, Settings, Wallet } from './settings';
 import { buildEvmClient, resolveRpcs } from './rpc';
 import { fetchEvmBalances, toDecimal, RawBalance } from './evm';
 import { fetchSolanaBalances } from './solana';
+import { fetchHyperCoreBalances } from './hyperliquid';
 import { fetchMarketData, fetchHistories, toDailyMap } from './prices';
 
 export interface AssetRow {
@@ -120,6 +121,8 @@ export function aggregate(
 /** Which chains a wallet kind can appear on. */
 function chainsForWallets(wallets: Wallet[]): ChainConfig[] {
     const kinds = new Set(wallets.map((w) => w.kind));
+    // HyperCore is addressed by a 0x address, so any EVM wallet can hold there.
+    if (kinds.has('evm')) kinds.add('hypercore');
     return getSupportedChains().filter((c) => kinds.has(c.kind));
 }
 
@@ -158,6 +161,22 @@ export async function loadPortfolio(
             }
 
             try {
+                if (chain.kind === 'hypercore') {
+                    const hl = await fetchHyperCoreBalances(chain, wallets);
+                    balances.push(...hl.balances);
+                    chainStatus.push(
+                        hl.perpsUnavailable
+                            ? {
+                                  chainId: chain.id,
+                                  state: 'degraded',
+                                  message:
+                                      'Spot balances only — the perps account could not be read.',
+                              }
+                            : { chainId: chain.id, state: 'ok' },
+                    );
+                    return;
+                }
+
                 if (chain.kind === 'svm') {
                     const sol = await fetchSolanaBalances(chain, urls, wallets);
                     balances.push(...sol.balances);

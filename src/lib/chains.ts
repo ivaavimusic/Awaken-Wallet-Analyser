@@ -4,7 +4,7 @@
 // Where none is listed the network needs an Alchemy key or a user-supplied
 // endpoint added in Settings — the UI says so rather than shipping a guess.
 
-export type ChainKind = 'evm' | 'svm' | 'keeta';
+export type ChainKind = 'evm' | 'svm' | 'keeta' | 'hypercore';
 
 export interface ChainConfig {
     id: string;
@@ -117,6 +117,23 @@ export const CHAINS: Record<string, ChainConfig> = {
         color: '#12AAFF',
         short: 'A',
         logo: '/assets/arb.svg',
+        addressValidator: isEvmAddress,
+    },
+    hypercore: {
+        id: 'hypercore',
+        name: 'Hyperliquid',
+        displayName: 'Hyperliquid (HyperCore)',
+        // The native L1: spot balances and perps, addressed by the same 0x
+        // address as HyperEVM but invisible to eth_call.
+        kind: 'hypercore',
+        publicRpcs: ['https://api.hyperliquid.xyz/info'],
+        explorerUrl: 'https://app.hyperliquid.xyz',
+        nativeSymbol: 'USDC',
+        nativeDecimals: 8,
+        coingeckoId: 'usd-coin',
+        color: '#97FCE4',
+        short: 'HL',
+        logo: '/assets/hyperliquid.svg',
         addressValidator: isEvmAddress,
     },
     hyperliquid: {
@@ -275,6 +292,7 @@ export const CHAIN_ORDER = [
     'solana',
     'arbitrum',
     'hyperliquid',
+    'hypercore',
     'tempo',
     'megaeth',
     'blast',

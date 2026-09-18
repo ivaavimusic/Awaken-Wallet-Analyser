@@ -4,14 +4,14 @@
 
 **A personal multi-chain portfolio manager that runs entirely in your browser.**
 
-Track what you own across ten networks. No account, no backend, no API key required.
+Track what you own across eleven networks. No account, no backend, no API key required.
 
 **[→ Try it live at openport.ehlabs.xyz](https://openport.ehlabs.xyz)**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
-![Networks](https://img.shields.io/badge/networks-10-6366f1)
+![Networks](https://img.shields.io/badge/networks-11-6366f1)
 
 </div>
 
@@ -61,6 +61,7 @@ and no private key input anywhere in the codebase.
 | Solana | — | SVM | ✅ |
 | Arbitrum One | 42161 | EVM | ✅ |
 | Hyperliquid HyperEVM | 999 | EVM | ✅ |
+| Hyperliquid HyperCore | — | native L1 | ✅ |
 | Tempo | 4217 | EVM | ✅ |
 | MegaETH | 4326 | EVM | ✅ |
 | Blast | 81457 | EVM | ✅ |
@@ -68,6 +69,11 @@ and no private key input anywhere in the codebase.
 
 Every endpoint shipped by default was tested from a browser. Endpoints that look healthy but
 send no CORS headers are useless to a client-side app, so they aren't included.
+
+> **Note:** Hyperliquid is read twice, because it is two systems sharing one address.
+> **HyperEVM** is the EVM execution layer; **HyperCore** is the native L1 holding your spot
+> balances and perps account, which is invisible to `eth_call` and needs Hyperliquid's own API.
+> Both are keyless.
 
 > **Note:** Robinhood Chain is Robinhood's Ethereum-compatible L2 for tokenised real-world
 > assets. It is not the Robinhood brokerage, and OpenPort has no connection to any brokerage
