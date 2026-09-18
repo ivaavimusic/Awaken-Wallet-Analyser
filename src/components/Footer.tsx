@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Github, KeyRound, Lock, Zap } from 'lucide-react';
 
-const REPO = 'https://github.com/ivaavimusic/tax export-Wallet-Analyser';
+const REPO = 'https://github.com/ivaavimusic/openport';
 
 const ASSURANCES = [
     { icon: Lock, text: 'Read-only — addresses only, never keys or seed phrases' },

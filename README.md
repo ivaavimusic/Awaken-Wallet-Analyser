@@ -76,8 +76,8 @@ send no CORS headers are useless to a client-side app, so they aren't included.
 ## Quick start
 
 ```bash
-git clone https://github.com/ivaavimusic/Awaken-Wallet-Analyser.git
-cd Awaken-Wallet-Analyser
+git clone https://github.com/ivaavimusic/openport.git
+cd openport
 npm install
 npm run dev
 ```

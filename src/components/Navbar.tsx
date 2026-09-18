@@ -35,7 +35,7 @@ export function Navbar({ children }: { children?: React.ReactNode }) {
                 <div className="flex items-center gap-8">
                     <Link href="/" className="flex items-center gap-3">
                         <img
-                            src="/logo_bunnyAnalyzer.svg"
+                            src="/openport-mark.svg"
                             alt="OpenPort"
                             className={`h-8 w-auto ${invertLogo ? 'brightness-0 invert' : ''}`}
                         />
