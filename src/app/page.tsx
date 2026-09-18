@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/Navbar';
 import { ChainFilter } from '@/components/ChainFilter';
 import { ChainLogo } from '@/components/ChainLogo';
+import { ChainBadgeRow } from '@/components/ChainBadgeRow';
 import { PortfolioChart } from '@/components/PortfolioChart';
 import { getChainGroups, groupChainIds, CHAINS } from '@/lib/chains';
 import {
@@ -562,27 +563,11 @@ export default function PortfolioPage() {
                                                     {shorten(w.wallet.address)}
                                                 </td>
                                                 <td className="p-2">
-                                                    <div className="flex gap-1 flex-wrap">
-                                                        {groupChainIds(w.chains).map(
-                                                            (g) => (
-                                                                <span
-                                                                    key={g.key}
-                                                                    className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full text-[10px] font-medium bg-muted/50"
-                                                                >
-                                                                    <ChainLogo
-                                                                        chain={g.repr}
-                                                                        size={14}
-                                                                    />
-                                                                    {g.name}
-                                                                </span>
-                                                            ),
+                                                    <ChainBadgeRow
+                                                        groups={groupChainIds(
+                                                            w.chains,
                                                         )}
-                                                        {w.chains.length === 0 && (
-                                                            <span className="text-muted-foreground text-xs">
-                                                                —
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                    />
                                                 </td>
                                                 <td className="p-2 text-right font-medium">
                                                     {money(w.usd)}
