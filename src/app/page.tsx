@@ -67,6 +67,8 @@ export default function PortfolioPage() {
     const [settings, setSettings] = useState<Settings | null>(null);
     const [data, setData] = useState<PortfolioResult | null>(null);
     const [chart, setChart] = useState<ChartPoint[]>([]);
+    /** Share of the charted total that has no price history, 0-1. */
+    const [flatShare, setFlatShare] = useState(0);
     const [loading, setLoading] = useState(false);
     const [chartLoading, setChartLoading] = useState(false);
     const [error, setError] = useState('');
@@ -196,7 +198,11 @@ export default function PortfolioPage() {
                 setFirstSeen(since);
                 return buildChart(view.assets, since);
             })
-            .then((pts) => !cancelled && pts && setChart(pts))
+            .then((res) => {
+                if (cancelled || !res) return;
+                setChart(res.points);
+                setFlatShare(res.flatShare);
+            })
             .catch(() => !cancelled && setChart([]))
             .finally(() => !cancelled && setChartLoading(false));
 
@@ -409,6 +415,7 @@ export default function PortfolioPage() {
                             snapshots={settings?.snapshots}
                             loading={chartLoading}
                             firstSeen={firstSeen}
+                            flatShare={flatShare}
                             canDetectFirstSeen={
                                 data?.mode === 'alchemy' ||
                                 activeWallet?.kind === 'svm'

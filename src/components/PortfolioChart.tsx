@@ -17,6 +17,8 @@ interface PortfolioChartProps {
     firstSeen?: number | null;
     /** Whether first activity is knowable here at all (needs an Alchemy key on EVM). */
     canDetectFirstSeen?: boolean;
+    /** Share of the total held in assets with no price history, 0-1. */
+    flatShare?: number;
 }
 
 const money = (n: number) =>
@@ -32,6 +34,7 @@ export function PortfolioChart({
     loading,
     firstSeen,
     canDetectFirstSeen = false,
+    flatShare = 0,
 }: PortfolioChartProps) {
     const [hover, setHover] = useState<number | null>(null);
 
@@ -234,6 +237,14 @@ export function PortfolioChart({
                 Current holdings valued at historical prices — not true historical
                 portfolio value. Past buys, sells and transfers are not reflected.
                 Dots mark real totals recorded on each refresh.
+                {flatShare > 0.01 && (
+                    <>
+                        {' '}
+                        {Math.round(flatShare * 100)}% of this total has no price
+                        history available and is held flat across the window, so
+                        only its past movement is missing — not its value.
+                    </>
+                )}
                 {typeof firstSeen === 'number' ? (
                     <>
                         {' '}Clipped to first on-chain activity (

@@ -257,13 +257,37 @@ export interface ChartPoint {
  * past buy, sell and transfer. It is what the current bag would have been
  * worth. Cheap, and honest as long as the UI says so.
  */
+export interface ChartResult {
+    points: ChartPoint[];
+    /** Value held in assets with no price history, carried flat. */
+    flatUsd: number;
+    /** That value as a share of the charted total, 0-1. */
+    flatShare: number;
+}
+
 export async function buildChart(
     assets: AssetRow[],
     /** Clamp the series to on/after this time, when first activity is known. */
     since?: number | null,
-): Promise<ChartPoint[]> {
-    const priced = assets.filter((a) => a.coingeckoId && a.quantity > 0);
-    if (priced.length === 0) return [];
+): Promise<ChartResult> {
+    const held = assets.filter((a) => a.quantity > 0);
+    const priced = held.filter((a) => a.coingeckoId);
+
+    // Assets priced by a source other than CoinGecko (Solana mints via
+    // Jupiter) have no historical series available. Dropping them silently
+    // made the chart disagree with the header total by orders of magnitude,
+    // so their present value is carried flat across the window instead. The
+    // magnitude stays honest; only their past movement is unknown.
+    const flatUsd = held
+        .filter((a) => !a.coingeckoId && a.priced)
+        .reduce((acc, a) => acc + a.usd, 0);
+
+    const total = held.reduce((acc, a) => acc + a.usd, 0);
+    const flatShare = total > 0 ? flatUsd / total : 0;
+
+    if (priced.length === 0) {
+        return { points: [], flatUsd, flatShare };
+    }
 
     const histories = await fetchHistories(
         priced.map((a) => a.coingeckoId as string),
@@ -279,7 +303,7 @@ export async function buildChart(
     const sorted = Array.from(days).sort();
 
     const points = sorted.map((day) => {
-        let usd = 0;
+        let usd = flatUsd;
         for (const a of priced) {
             const price = daily.get(a.coingeckoId as string)?.get(day);
             if (price !== undefined) usd += a.quantity * price;
@@ -287,12 +311,16 @@ export async function buildChart(
         return { t: Date.parse(`${day}T00:00:00Z`), usd };
     });
 
-    if (typeof since !== 'number') return points;
+    if (typeof since !== 'number') return { points, flatUsd, flatShare };
 
     // Drop days before the wallet existed. Keep at least two points so a very
     // new wallet still renders a line rather than collapsing to nothing.
     const clamped = points.filter((p) => p.t >= since);
-    return clamped.length >= 2 ? clamped : points.slice(-2);
+    return {
+        points: clamped.length >= 2 ? clamped : points.slice(-2),
+        flatUsd,
+        flatShare,
+    };
 }
 
 export const chainName = (id: string): string => CHAINS[id]?.name ?? id;
