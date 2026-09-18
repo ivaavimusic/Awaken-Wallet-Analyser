@@ -199,16 +199,21 @@ export async function loadPortfolio(
                     balances.push(...sol.balances);
 
                     const notes: string[] = [];
+                    // Report what the endpoints actually said. A guessed cause
+                    // sends people to fix the wrong thing.
                     if (sol.balanceFailures > 0) {
                         notes.push(
-                            'Balances could not be read — every endpoint refused or rate limited us. Press Refresh to retry.',
+                            `Balances failed: ${sol.balanceError || 'unknown error'}.`,
                         );
                     }
                     if (sol.tokensUnavailable) {
                         notes.push(
-                            settings.alchemyKey
-                                ? 'SPL token lookups were refused. Enable SOLANA_MAINNET for your app in the Alchemy dashboard — it is off by default.'
-                                : 'SPL token lookups were refused. Public Solana endpoints block them; add an Alchemy key in Settings to see your tokens.',
+                            `Token lookup failed: ${sol.tokenError || 'unknown error'}.`,
+                        );
+                    }
+                    if (!settings.alchemyKey) {
+                        notes.push(
+                            'Public Solana endpoints block token lookups — an Alchemy key is needed for SPL balances.',
                         );
                     }
 

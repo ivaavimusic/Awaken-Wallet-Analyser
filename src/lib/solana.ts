@@ -14,6 +14,8 @@ import { DisplayTransaction } from '@/types';
 
 const SPL_TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 interface TokenAccountsResponse {
     value: {
         account: {
@@ -35,6 +37,10 @@ interface TokenAccountsResponse {
 
 export interface SolanaResult {
     balances: RawBalance[];
+    /** Verbatim reason the SPL lookup failed, when it did. */
+    tokenError?: string;
+    /** Verbatim reason the batched balance read failed, when it did. */
+    balanceError?: string;
     /** Non-zero when the batched native balance read failed outright. */
     balanceFailures: number;
     /**
@@ -52,7 +58,11 @@ export async function fetchSolanaBalances(
 ): Promise<SolanaResult> {
     const solWallets = wallets.filter((w) => w.kind === 'svm');
     if (solWallets.length === 0) {
-        return { balances: [], tokensUnavailable: false, balanceFailures: 0 };
+        return {
+            balances: [],
+            tokensUnavailable: false,
+            balanceFailures: 0,
+        };
     }
 
     const out: RawBalance[] = [];
@@ -63,6 +73,8 @@ export async function fetchSolanaBalances(
         amount: bigint;
     }[] = [];
     let tokensUnavailable = false;
+    let tokenError = '';
+    let balanceError = '';
     let balanceFailures = 0;
 
     // Every wallet's native balance in a single request. Public Solana
@@ -85,14 +97,18 @@ export async function fetchSolanaBalances(
                 coingeckoId: chain.coingeckoId,
             });
         });
-    } catch {
+    } catch (e) {
         // One batched request covers every wallet, so this is a single
         // failure — not one per wallet.
         balanceFailures = 1;
+        balanceError = e instanceof Error ? e.message : String(e);
     }
 
     for (const w of solWallets) {
         // Every SPL token held. Refusal here costs us tokens, not the chain.
+        // getTokenAccountsByOwner is expensive and cannot be batched by owner,
+        // so the calls are paced rather than fired back to back.
+        if (out.length > solWallets.length) await sleep(120);
         let accounts: TokenAccountsResponse | null = null;
         try {
             accounts = await jsonRpc<TokenAccountsResponse>(
@@ -104,8 +120,13 @@ export async function fetchSolanaBalances(
                     { encoding: 'jsonParsed' },
                 ],
             );
-        } catch {
+        } catch (e) {
             tokensUnavailable = true;
+            // Keep the real reason. Guessing at the cause from a generic
+            // message sent us down the wrong path more than once.
+            if (!tokenError) {
+                tokenError = e instanceof Error ? e.message : String(e);
+            }
         }
 
         for (const acc of accounts?.value ?? []) {
@@ -144,7 +165,13 @@ export async function fetchSolanaBalances(
         });
     }
 
-    return { balances: out, tokensUnavailable, balanceFailures };
+    return {
+        balances: out,
+        tokensUnavailable,
+        tokenError,
+        balanceError,
+        balanceFailures,
+    };
 }
 
 /* ------------------------------------------------------------------ *
