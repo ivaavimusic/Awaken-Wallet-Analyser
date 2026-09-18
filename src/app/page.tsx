@@ -22,6 +22,7 @@ import {
     aggregate,
     toCache,
     fromCache,
+    mergeWalletResult,
     PortfolioResult,
     ChartPoint,
 } from '@/lib/portfolio';
@@ -86,6 +87,52 @@ export default function PortfolioPage() {
     const [assetTab, setAssetTab] = useState<'tokens' | 'nfts'>('tokens');
     const [nfts, setNfts] = useState<NftResult | null>(null);
     const [nftsLoading, setNftsLoading] = useState(false);
+    /** Wallet currently being refreshed on its own. */
+    const [refreshingWallet, setRefreshingWallet] = useState<string | null>(null);
+
+    // Re-read one wallet without disturbing the others.
+    const refreshWallet = useCallback(
+        async (walletId: string) => {
+            if (!settings || !data) return;
+            const wallet = settings.wallets.find((w) => w.id === walletId);
+            if (!wallet) return;
+
+            setRefreshingWallet(walletId);
+            try {
+                const fresh = await loadPortfolio({
+                    ...settings,
+                    wallets: [wallet],
+                });
+                const merged = mergeWalletResult(
+                    data,
+                    walletId,
+                    fresh,
+                    settings.wallets,
+                );
+                setData(merged);
+                setStale(false);
+
+                const next: Settings = { ...settings, cache: toCache(merged) };
+                saveSettings(next);
+                setSettings(next);
+
+                for (const p of fresh.chainStatus) {
+                    if (p.state === 'ok' || !p.message) continue;
+                    toast.warning(CHAINS[p.chainId]?.name ?? p.chainId, {
+                        description: p.message,
+                    });
+                }
+            } catch (e) {
+                toast.error(`Could not refresh ${wallet.name}`, {
+                    description:
+                        e instanceof Error ? e.message : 'Unknown error',
+                });
+            } finally {
+                setRefreshingWallet(null);
+            }
+        },
+        [settings, data],
+    );
 
     useEffect(() => {
         setSettings(loadSettings());
@@ -724,7 +771,32 @@ export default function PortfolioPage() {
                                                     />
                                                 </td>
                                                 <td className="p-2 text-right font-medium">
-                                                    {money(w.usd)}
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        {money(w.usd)}
+                                                        <button
+                                                            onClick={() =>
+                                                                refreshWallet(
+                                                                    w.wallet.id,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                refreshingWallet !==
+                                                                null
+                                                            }
+                                                            aria-label={`Refresh ${w.wallet.name}`}
+                                                            title={`Refresh ${w.wallet.name}`}
+                                                            className="text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors cursor-pointer"
+                                                        >
+                                                            <RefreshCw
+                                                                className={`w-3.5 h-3.5 ${
+                                                                    refreshingWallet ===
+                                                                    w.wallet.id
+                                                                        ? 'animate-spin'
+                                                                        : ''
+                                                                }`}
+                                                            />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}

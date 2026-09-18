@@ -410,6 +410,59 @@ export async function buildChart(
 
 export const chainName = (id: string): string => CHAINS[id]?.name ?? id;
 
+/**
+ * Fold a single wallet's freshly read result into an existing portfolio.
+ *
+ * Refreshing one wallet must not disturb the others: their balances, prices
+ * and chain statuses are kept as they were, and only the refreshed wallet's
+ * rows are replaced.
+ */
+export function mergeWalletResult(
+    current: PortfolioResult,
+    walletId: string,
+    fresh: PortfolioResult,
+    wallets: Wallet[],
+): PortfolioResult {
+    const balances = [
+        ...current.balances.filter((b) => b.walletId !== walletId),
+        ...fresh.balances,
+    ];
+    const spot = { ...current.spot, ...fresh.spot };
+    const images = { ...current.images, ...fresh.images };
+
+    // Chain statuses from the scoped run only describe the chains it touched.
+    const touched = new Set(fresh.chainStatus.map((c) => c.chainId));
+    const chainStatus = [
+        ...current.chainStatus.filter((c) => !touched.has(c.chainId)),
+        ...fresh.chainStatus,
+    ];
+
+    const walletIssues = { ...current.walletIssues };
+    delete walletIssues[walletId];
+    Object.assign(walletIssues, fresh.walletIssues);
+
+    const { assets, wallets: walletRows, totalUsd } = aggregate(
+        balances,
+        spot,
+        wallets,
+        images,
+    );
+
+    return {
+        balances,
+        assets,
+        wallets: walletRows,
+        totalUsd,
+        chainStatus,
+        fetchedAt: Date.now(),
+        mode: fresh.mode,
+        spot,
+        images,
+        walletIssues,
+        incomplete: chainStatus.some((c) => c.state === 'failed'),
+    };
+}
+
 /* ------------------------------------------------------------------ *
  * Caching. Reopening the app should cost nothing; refresh is explicit.
  * ------------------------------------------------------------------ */
