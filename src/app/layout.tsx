@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     title:
       "OpenPort — Multi-Chain Crypto Portfolio Tracker (Ethereum, Solana, Base)",
     description:
-      "Track what you own across ten networks. No account, no backend, no API key required.",
+      "Track every asset you hold, across every wallet and blockchain you use. No account, no backend, no API key required.",
     url: "https://openport.ehlabs.xyz",
     siteName: "OpenPort",
     type: "website",
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
         url: "/og.png",
         width: 1200,
         height: 630,
-        alt: "OpenPort — track what you own across ten networks",
+        alt: "OpenPort — every asset, every wallet, every chain, in one place",
       },
     ],
   },
@@ -76,7 +76,7 @@ export const metadata: Metadata = {
     title:
       "OpenPort — Multi-Chain Crypto Portfolio Tracker (Ethereum, Solana, Base)",
     description:
-      "Track what you own across ten networks. No account, no backend, no API key required.",
+      "Track every asset you hold, across every wallet and blockchain you use. No account, no backend, no API key required.",
     images: ["/og.png"],
   },
   alternates: { canonical: "https://openport.ehlabs.xyz" },

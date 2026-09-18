@@ -4,14 +4,14 @@
 
 **A personal multi-chain portfolio manager that runs entirely in your browser.**
 
-Track what you own across eleven networks. No account, no backend, no API key required.
+Track every asset you hold, across every wallet and blockchain you use. No account, no backend, no API key required.
 
 **[→ Try it live at openport.ehlabs.xyz](https://openport.ehlabs.xyz)**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
-![Networks](https://img.shields.io/badge/networks-11-6366f1)
+![Networks](https://img.shields.io/badge/multi--chain-EVM%20%C2%B7%20Solana%20%C2%B7%20Hyperliquid-6366f1)
 
 </div>
 
@@ -62,6 +62,7 @@ and no private key input anywhere in the codebase.
 | Arbitrum One | 42161 | EVM | ✅ |
 | Hyperliquid HyperEVM | 999 | EVM | ✅ |
 | Hyperliquid HyperCore | — | native L1 | ✅ |
+| Abstract | 2741 | EVM (ZK rollup) | ✅ |
 | Tempo | 4217 | EVM | ✅ |
 | MegaETH | 4326 | EVM | ✅ |
 | Blast | 81457 | EVM | ✅ |

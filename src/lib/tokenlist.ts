@@ -105,6 +105,7 @@ export const TOKENS: Record<string, TokenDef[]> = {
     // No canonical token addresses confirmed for these yet. Native balance
     // only in keyless mode; an Alchemy key gives full discovery.
     hyperliquid: [],
+    abstract: [],
     robinhood: [],
     megaeth: [],
     tempo: [],

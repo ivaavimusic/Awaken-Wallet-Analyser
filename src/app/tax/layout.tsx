@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
     title: 'Crypto Tax Export — Download Wallet History as CSV | OpenPort',
     description:
-        'Export any wallet\'s transaction history to CSV for tax filing. Supports Ethereum, Base, Arbitrum, Solana, Robinhood Chain, Blast, MegaETH and Keeta. Free and open source.',
+        'Export any wallet\'s transaction history to CSV for tax filing. Supports Ethereum, Base, Arbitrum, Solana, Hyperliquid, Abstract and more. Free and open source.',
     keywords: [
         'crypto tax export',
         'wallet transaction history CSV',
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     openGraph: {
         title: 'Crypto Tax Export — Download Wallet History as CSV',
         description:
-            'Export any wallet\'s transaction history to CSV for tax filing, across ten networks.',
+            'Export any wallet\'s transaction history to CSV for tax filing, across every supported blockchain.',
         url: 'https://openport.ehlabs.xyz/tax',
         siteName: 'OpenPort',
         type: 'website',

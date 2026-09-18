@@ -24,7 +24,7 @@ export function Footer() {
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
                         A personal multi-chain portfolio manager. Track what you own
-                        across ten networks and export it for tax season.
+                        across every wallet and blockchain you use, and export it for tax season.
                     </p>
                 </div>
 
