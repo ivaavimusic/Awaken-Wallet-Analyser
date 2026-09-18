@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Github, KeyRound, Lock, Zap } from 'lucide-react';
+import { Github, Globe, KeyRound, Lock, Zap } from 'lucide-react';
 
 const REPO = 'https://github.com/ivaavimusic/openport';
 
@@ -96,6 +96,15 @@ export function Footer() {
                             >
                                 <Github className="w-3 h-3" />
                                 @ivaavimusic
+                            </a>
+                            <a
+                                href="https://info.ivaavi.xyz"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 hover:text-foreground transition-colors"
+                            >
+                                <Globe className="w-3 h-3" />
+                                info.ivaavi.xyz
                             </a>
                             <a
                                 href="https://x.com/ivaavimusic"
