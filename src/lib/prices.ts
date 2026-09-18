@@ -83,6 +83,47 @@ export async function fetchMarketData(ids: string[]): Promise<MarketData> {
     return out;
 }
 
+/**
+ * USD prices for tokens by contract/mint address on a CoinGecko platform.
+ *
+ * Preferred over a single DEX quote where the token is listed: CoinGecko
+ * aggregates across venues, whereas a DEX price reflects one pool's liquidity.
+ * Batched, so this is one request however many addresses are held.
+ */
+export async function fetchTokenPricesByContract(
+    platform: string,
+    addresses: string[],
+): Promise<Record<string, number>> {
+    const unique = Array.from(new Set(addresses.filter(Boolean))).sort();
+    if (unique.length === 0) return {};
+
+    const key = `openport-cgcontract:${platform}:${unique.join(',')}`;
+    const cached = readCache<Record<string, number>>(key, SPOT_TTL_MS);
+    if (cached) return cached;
+
+    try {
+        const url =
+            `${CG}/simple/token_price/${platform}` +
+            `?contract_addresses=${unique.join(',')}&vs_currencies=usd`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = (await res.json()) as Record<string, { usd?: number }>;
+
+        const out: Record<string, number> = {};
+        // CoinGecko lowercases addresses it echoes back; Solana mints are
+        // case-sensitive, so map results onto the addresses we asked for.
+        const byLower = new Map(unique.map((a) => [a.toLowerCase(), a]));
+        for (const [addr, v] of Object.entries(json ?? {})) {
+            const original = byLower.get(addr.toLowerCase()) ?? addr;
+            if (typeof v?.usd === 'number' && v.usd > 0) out[original] = v.usd;
+        }
+        writeCache(key, out);
+        return out;
+    } catch {
+        return {};
+    }
+}
+
 /** Daily USD series for the last year. */
 export async function fetchPriceHistory(id: string): Promise<PriceSeries> {
     if (!id) return [];

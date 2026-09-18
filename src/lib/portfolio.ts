@@ -83,7 +83,18 @@ export function aggregate(
         if (qty === 0) continue;
         // CoinGecko id first, then any price the source resolved itself.
         const price = b.coingeckoId ? spot[b.coingeckoId] : b.usdPrice;
-        const row = bySymbol.get(b.symbol) ?? {
+
+        // Tickers are not unique — a search for SGL returns several unrelated
+        // tokens. Merging on symbol alone would pool their quantities under
+        // one price. The same asset across chains shares a CoinGecko id or a
+        // unit price, so grouping on that keeps those together while keeping
+        // genuinely different tokens apart.
+        const identity =
+            b.coingeckoId ??
+            (price !== undefined ? `px:${price.toPrecision(6)}` : 'unpriced');
+        const key = `${b.symbol}|${identity}`;
+
+        const row = bySymbol.get(key) ?? {
             symbol: b.symbol,
             quantity: 0,
             usd: 0,
@@ -95,7 +106,7 @@ export function aggregate(
         row.quantity += qty;
         if (price !== undefined) row.usd += qty * price;
         else row.priced = false;
-        bySymbol.set(b.symbol, row);
+        bySymbol.set(key, row);
     }
 
     const assets = Array.from(bySymbol.values()).sort((a, b) => b.usd - a.usd);

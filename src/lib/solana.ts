@@ -7,6 +7,7 @@
 
 import { jsonRpc } from './rpc';
 import { fetchJupiterTokens, fetchJupiterPrices } from './jupiter';
+import { fetchTokenPricesByContract } from './prices';
 import { RawBalance } from './evm';
 import { Wallet } from './settings';
 import { ChainConfig, base58Length } from './chains';
@@ -162,9 +163,12 @@ export async function fetchSolanaBalances(
     // Resolve every held mint at once rather than against a hardcoded list, so
     // small-cap and brand-new tokens get a name and a price like anything else.
     const mints = held.map((h) => h.mint);
-    const [meta, prices] = await Promise.all([
+    // CoinGecko where the token is listed, Jupiter for everything else.
+    // CoinGecko aggregates across venues; a DEX quote is one pool's view.
+    const [meta, jupPrices, cgPrices] = await Promise.all([
         fetchJupiterTokens(mints),
         fetchJupiterPrices(mints),
+        fetchTokenPricesByContract('solana', mints),
     ]);
 
     for (const h of held) {
@@ -176,7 +180,7 @@ export async function fetchSolanaBalances(
                 m?.symbol ?? `${h.mint.slice(0, 4)}…${h.mint.slice(-4)}`,
             decimals: h.decimals,
             amount: h.amount,
-            usdPrice: prices[h.mint],
+            usdPrice: cgPrices[h.mint] ?? jupPrices[h.mint],
             icon: m?.icon,
         });
     }
