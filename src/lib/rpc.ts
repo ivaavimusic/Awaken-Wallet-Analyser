@@ -58,7 +58,15 @@ export function buildEvmClient(
     }) as PublicClient;
 }
 
-/** Minimal JSON-RPC POST with failover, used for Solana. */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Minimal JSON-RPC POST with failover, used for Solana.
+ *
+ * A 429 is a request to slow down, not a broken endpoint, so it is retried
+ * once with a short pause before moving on. A 403 is a hard refusal and falls
+ * straight through to the next endpoint.
+ */
 export async function jsonRpc<T>(
     urls: string[],
     method: string,
@@ -66,6 +74,7 @@ export async function jsonRpc<T>(
 ): Promise<T> {
     let lastError: unknown;
     for (const url of urls) {
+        for (let attempt = 0; attempt < 2; attempt++) {
         try {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
@@ -76,12 +85,18 @@ export async function jsonRpc<T>(
                 signal: controller.signal,
             });
             clearTimeout(timer);
+            if (res.status === 429 && attempt === 0) {
+                await sleep(600);
+                continue;
+            }
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const json = await res.json();
             if (json.error) throw new Error(json.error.message ?? 'RPC error');
             return json.result as T;
         } catch (e) {
             lastError = e;
+        }
+        break;
         }
     }
     throw lastError instanceof Error

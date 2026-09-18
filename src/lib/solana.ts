@@ -65,28 +65,31 @@ export async function fetchSolanaBalances(
     let tokensUnavailable = false;
     let balanceFailures = 0;
 
-    for (const w of solWallets) {
-        // Native SOL. One rate-limited wallet must not take the whole chain
-        // down with it — public Solana endpoints 403 under load, and losing
-        // every other wallet's balance to that is far worse than losing one.
-        try {
-            const lamports = await jsonRpc<{ value: number }>(
-                urls,
-                'getBalance',
-                [w.address],
-            );
+    // Every wallet's native balance in a single request. Public Solana
+    // endpoints rate-limit aggressively, and one call per wallet was the main
+    // reason a few saved wallets could 403 the whole chain.
+    try {
+        const accounts = await jsonRpc<{ value: ({ lamports?: number } | null)[] }>(
+            urls,
+            'getMultipleAccounts',
+            [solWallets.map((w) => w.address), { encoding: 'base64' }],
+        );
+        solWallets.forEach((w, i) => {
+            const lamports = accounts?.value?.[i]?.lamports ?? 0;
             out.push({
                 chainId: chain.id,
                 walletId: w.id,
                 symbol: chain.nativeSymbol,
                 decimals: chain.nativeDecimals,
-                amount: BigInt(lamports?.value ?? 0),
+                amount: BigInt(lamports),
                 coingeckoId: chain.coingeckoId,
             });
-        } catch {
-            balanceFailures++;
-        }
+        });
+    } catch {
+        balanceFailures = solWallets.length;
+    }
 
+    for (const w of solWallets) {
         // Every SPL token held. Refusal here costs us tokens, not the chain.
         let accounts: TokenAccountsResponse | null = null;
         try {

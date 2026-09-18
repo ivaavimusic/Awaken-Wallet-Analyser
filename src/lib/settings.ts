@@ -14,7 +14,19 @@ export interface Wallet {
     name: string;
     address: string;
     kind: ChainKind;
+    /** Free-form grouping, e.g. "Hardware". Empty means uncategorised. */
+    category?: string;
 }
+
+/** Offered in the picker; any other value typed by the user is kept as-is. */
+export const WALLET_CATEGORIES = [
+    'Hot wallet',
+    'Hardware wallet',
+    'Cold storage',
+    'Exchange',
+    'DeFi',
+    'Testing',
+] as const;
 
 export interface Snapshot {
     /** Unix ms. */
@@ -176,6 +188,29 @@ export const renameWallet = (s: Settings, id: string, name: string): Settings =>
     ...s,
     wallets: s.wallets.map((w) => (w.id === id ? { ...w, name } : w)),
 });
+
+export const setWalletCategory = (
+    s: Settings,
+    id: string,
+    category: string,
+): Settings => ({
+    ...s,
+    wallets: s.wallets.map((w) =>
+        w.id === id ? { ...w, category: category || undefined } : w,
+    ),
+});
+
+/** Categories actually in use, in the order the picker offers them. */
+export function usedCategories(wallets: Wallet[]): string[] {
+    const used = new Set(
+        wallets.map((w) => w.category).filter((c): c is string => !!c),
+    );
+    const known = WALLET_CATEGORIES.filter((c) => used.has(c));
+    const custom = [...used].filter(
+        (c) => !WALLET_CATEGORIES.includes(c as (typeof WALLET_CATEGORIES)[number]),
+    );
+    return [...known, ...custom.sort()];
+}
 
 export const addRpc = (s: Settings, chainId: string, url: string): Settings => {
     const u = url.trim();

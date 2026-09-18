@@ -14,6 +14,7 @@ import {
     loadSettings,
     saveSettings,
     appendSnapshot,
+    usedCategories,
     Settings,
 } from '@/lib/settings';
 import {
@@ -25,11 +26,13 @@ import {
     PortfolioResult,
     ChartPoint,
 } from '@/lib/portfolio';
-import { AlertTriangle, ChevronDown, RefreshCw, Wallet as WalletIcon } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Layers, RefreshCw, Wallet as WalletIcon, X } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { getScopeFirstSeen } from '@/lib/firstseen';
@@ -75,6 +78,8 @@ export default function PortfolioPage() {
     const [selected, setSelected] = useState<string[]>([]);
     /** null = every wallet combined. */
     const [walletId, setWalletId] = useState<string | null>(null);
+    /** null = every category. Mutually exclusive with walletId. */
+    const [category, setCategory] = useState<string | null>(null);
     /** Earliest on-chain activity in the current scope, if determinable. */
     const [firstSeen, setFirstSeen] = useState<number | null>(null);
     /** True while showing restored figures that have not been re-fetched. */
@@ -82,6 +87,8 @@ export default function PortfolioPage() {
     const [assetTab, setAssetTab] = useState<'tokens' | 'nfts'>('tokens');
     const [nfts, setNfts] = useState<NftResult | null>(null);
     const [nftsLoading, setNftsLoading] = useState(false);
+    /** Warnings the user has dismissed; a refresh brings them back if still true. */
+    const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
         setSettings(loadSettings());
@@ -104,6 +111,7 @@ export default function PortfolioPage() {
                 const result = await loadPortfolio(s);
                 setData(result);
                 setStale(false);
+                setDismissed(false);
 
                 // Persist the result so reopening the app costs no RPC calls,
                 // and record a real snapshot of the true total.
@@ -155,7 +163,16 @@ export default function PortfolioPage() {
     const view = useMemo(() => {
         if (!data || !settings) return null;
         const noChainFilter = selected.length === 0;
-        const noWalletFilter = walletId === null;
+        const inScope = new Set(
+            settings.wallets
+                .filter(
+                    (w) =>
+                        (walletId === null || w.id === walletId) &&
+                        (category === null || w.category === category),
+                )
+                .map((w) => w.id),
+        );
+        const noWalletFilter = walletId === null && category === null;
         if (noChainFilter && noWalletFilter) {
             return {
                 assets: data.assets,
@@ -166,13 +183,11 @@ export default function PortfolioPage() {
         const filtered = data.balances.filter(
             (b) =>
                 (noChainFilter || selected.includes(b.chainId)) &&
-                (noWalletFilter || b.walletId === walletId),
+                (noWalletFilter || inScope.has(b.walletId)),
         );
-        const scope = noWalletFilter
-            ? settings.wallets
-            : settings.wallets.filter((w) => w.id === walletId);
+        const scope = settings.wallets.filter((w) => inScope.has(w.id));
         return aggregate(filtered, data.spot, scope, data.images);
-    }, [data, settings, selected, walletId]);
+    }, [data, settings, selected, walletId, category]);
 
     const activeWallet =
         settings?.wallets.find((w) => w.id === walletId) ?? null;
@@ -184,9 +199,11 @@ export default function PortfolioPage() {
         let cancelled = false;
         setChartLoading(true);
 
-        const scopeWallets = walletId
-            ? settings.wallets.filter((w) => w.id === walletId)
-            : settings.wallets;
+        const scopeWallets = settings.wallets.filter(
+            (w) =>
+                (walletId === null || w.id === walletId) &&
+                (category === null || w.category === category),
+        );
         const chainsByWallet = Object.fromEntries(
             data.wallets.map((w) => [w.wallet.id, w.chains]),
         );
@@ -210,7 +227,7 @@ export default function PortfolioPage() {
             cancelled = true;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [walletId, selected.join(','), data?.fetchedAt]);
+    }, [walletId, category, selected.join(','), data?.fetchedAt]);
 
     // NFTs are fetched only when the tab is actually opened, so the default
     // view never pays for them.
@@ -232,6 +249,18 @@ export default function PortfolioPage() {
     }, [assetTab, settings?.alchemyKey]);
 
     const chainGroups = getChainGroups();
+    const categories = usedCategories(settings?.wallets ?? []);
+    const categoryTotals = useMemo(() => {
+        const byId = new Map(
+            (data?.wallets ?? []).map((w) => [w.wallet.id, w.usd]),
+        );
+        const totals: Record<string, number> = {};
+        for (const w of settings?.wallets ?? []) {
+            if (!w.category) continue;
+            totals[w.category] = (totals[w.category] ?? 0) + (byId.get(w.id) ?? 0);
+        }
+        return totals;
+    }, [data, settings]);
     const problems = data?.chainStatus.filter((c) => c.state !== 'ok') ?? [];
     const hasWallets = (settings?.wallets.length ?? 0) > 0;
 
@@ -262,7 +291,9 @@ export default function PortfolioPage() {
                         <div className="flex items-end justify-between flex-wrap gap-4">
                             <div>
                                 <div className="text-sm text-muted-foreground font-medium">
-                                    {activeWallet ? activeWallet.name : 'Total value'}
+                                    {activeWallet
+                                        ? activeWallet.name
+                                        : category ?? 'Total value'}
                                     {selected.length > 0 && ' · filtered'}
                                 </div>
                                 <div className="text-4xl font-bold tracking-tight mt-1">
@@ -304,7 +335,9 @@ export default function PortfolioPage() {
                                             ) : (
                                                 <>
                                                     <WalletIcon className="w-4 h-4" />
-                                                    All wallets
+                                                    <span className="truncate">
+                                                        {category ?? 'All wallets'}
+                                                    </span>
                                                 </>
                                             )}
                                             <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -315,9 +348,14 @@ export default function PortfolioPage() {
                                         className="w-64 bg-card border-border/50"
                                     >
                                         <DropdownMenuItem
-                                            onClick={() => setWalletId(null)}
+                                            onClick={() => {
+                                                setWalletId(null);
+                                                setCategory(null);
+                                            }}
                                             className={`gap-3 py-2.5 cursor-pointer ${
-                                                walletId === null ? 'bg-accent' : ''
+                                                walletId === null && category === null
+                                                    ? 'bg-accent'
+                                                    : ''
                                             }`}
                                         >
                                             <WalletIcon className="w-4 h-4" />
@@ -328,10 +366,46 @@ export default function PortfolioPage() {
                                                 {money(data?.totalUsd ?? 0)}
                                             </span>
                                         </DropdownMenuItem>
+
+                                        {categories.length > 0 && (
+                                            <>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                                    Categories
+                                                </DropdownMenuLabel>
+                                                {categories.map((c) => (
+                                                    <DropdownMenuItem
+                                                        key={c}
+                                                        onClick={() => {
+                                                            setWalletId(null);
+                                                            setCategory(c);
+                                                        }}
+                                                        className={`gap-3 py-2 cursor-pointer ${
+                                                            category === c
+                                                                ? 'bg-accent'
+                                                                : ''
+                                                        }`}
+                                                    >
+                                                        <Layers className="w-4 h-4" />
+                                                        <span className="flex-1">{c}</span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {money(categoryTotals[c] ?? 0)}
+                                                        </span>
+                                                    </DropdownMenuItem>
+                                                ))}
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                                    Wallets
+                                                </DropdownMenuLabel>
+                                            </>
+                                        )}
                                         {(data?.wallets ?? []).map((w) => (
                                             <DropdownMenuItem
                                                 key={w.wallet.id}
-                                                onClick={() => setWalletId(w.wallet.id)}
+                                                onClick={() => {
+                                                    setCategory(null);
+                                                    setWalletId(w.wallet.id);
+                                                }}
                                                 className={`gap-3 py-2.5 cursor-pointer ${
                                                     walletId === w.wallet.id
                                                         ? 'bg-accent'
@@ -381,12 +455,19 @@ export default function PortfolioPage() {
                         />
 
                         {error && (
-                            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-700 dark:text-red-300">
-                                {error}
+                            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-700 dark:text-red-300 flex items-start gap-3">
+                                <span className="flex-1">{error}</span>
+                                <button
+                                    onClick={() => setError('')}
+                                    aria-label="Dismiss"
+                                    className="opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
                             </div>
                         )}
 
-                        {problems.length > 0 && (
+                        {problems.length > 0 && !dismissed && (
                             <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
                                 <div className="flex items-start gap-3">
                                     <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
@@ -406,6 +487,13 @@ export default function PortfolioPage() {
                                             </p>
                                         ))}
                                     </div>
+                                    <button
+                                        onClick={() => setDismissed(true)}
+                                        aria-label="Dismiss warnings"
+                                        className="text-amber-700 dark:text-amber-300 opacity-60 hover:opacity-100 transition-opacity cursor-pointer shrink-0"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
                         )}

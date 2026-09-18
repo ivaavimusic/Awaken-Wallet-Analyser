@@ -21,8 +21,17 @@ import {
     exportSettings,
     importSettings,
     emptySettings,
+    setWalletCategory,
+    WALLET_CATEGORIES,
     Settings,
 } from '@/lib/settings';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     ArrowDown,
     ArrowUp,
@@ -171,6 +180,36 @@ export default function SettingsPage() {
                                     <span className="flex-1 font-mono text-xs text-muted-foreground truncate">
                                         {w.address}
                                     </span>
+                                    <Select
+                                        value={w.category ?? 'none'}
+                                        onValueChange={(v) =>
+                                            commit(
+                                                setWalletCategory(
+                                                    settings,
+                                                    w.id,
+                                                    v === 'none' ? '' : v,
+                                                ),
+                                            )
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="w-[150px] text-xs cursor-pointer"
+                                        >
+                                            <SelectValue placeholder="Category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">
+                                                No category
+                                            </SelectItem>
+                                            {WALLET_CATEGORIES.map((c) => (
+                                                <SelectItem key={c} value={c}>
+                                                    {c}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+
                                     <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded bg-muted text-muted-foreground">
                                         {w.kind === 'evm'
                                             ? 'EVM'
