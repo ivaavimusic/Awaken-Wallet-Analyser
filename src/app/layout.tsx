@@ -32,12 +32,21 @@ export const metadata: Metadata = {
     url: "https://openport.ehlabs.xyz",
     siteName: "OpenPort",
     type: "website",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "OpenPort — track what you own across ten networks",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "OpenPort | Multi-chain portfolio manager",
     description:
       "Track what you own across ten networks. No account, no backend, no API key required.",
+    images: ["/og.png"],
   },
   alternates: { canonical: "https://openport.ehlabs.xyz" },
 };
