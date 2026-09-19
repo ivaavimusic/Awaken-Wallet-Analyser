@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/Navbar';
 import { ChainFilter } from '@/components/ChainFilter';
 import { ChainBadgeRow } from '@/components/ChainBadgeRow';
+import { ChainLogo } from '@/components/ChainLogo';
 import { PortfolioChart } from '@/components/PortfolioChart';
 import { getChainGroups, groupChainIds, CHAINS } from '@/lib/chains';
 import {
@@ -16,6 +17,7 @@ import {
     usedCategories,
     Settings,
 } from '@/lib/settings';
+import { toDecimal } from '@/lib/evm';
 import {
     loadPortfolio,
     buildChart,
@@ -26,7 +28,7 @@ import {
     PortfolioResult,
     ChartPoint,
 } from '@/lib/portfolio';
-import { Check, ChevronDown, ChevronsDown, Layers, RefreshCw, TriangleAlert, Wallet as WalletIcon } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ChevronsDown, Layers, RefreshCw, TriangleAlert, Wallet as WalletIcon } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -89,6 +91,39 @@ export default function PortfolioPage() {
     const [nftsLoading, setNftsLoading] = useState(false);
     /** Wallet currently being refreshed on its own. */
     const [refreshingWallet, setRefreshingWallet] = useState<string | null>(null);
+    /** Wallet whose holdings are expanded beneath its row. */
+    const [openWallet, setOpenWallet] = useState<string | null>(null);
+
+    /**
+     * One wallet's holdings, split by chain. Everything needed is already in
+     * memory, so opening a wallet costs nothing.
+     */
+    const holdingsOf = useCallback(
+        (walletId: string) => {
+            if (!data) return [];
+            return data.balances
+                .filter((b) => b.walletId === walletId && b.amount > 0n)
+                .map((b) => {
+                    const quantity = toDecimal(b.amount, b.decimals);
+                    const price = b.coingeckoId
+                        ? data.spot[b.coingeckoId]
+                        : b.usdPrice;
+                    return {
+                        key: `${b.chainId}-${b.symbol}`,
+                        symbol: b.symbol,
+                        chainId: b.chainId,
+                        quantity,
+                        usd: price !== undefined ? quantity * price : undefined,
+                        icon:
+                            (b.coingeckoId
+                                ? data.images[b.coingeckoId]
+                                : undefined) ?? b.icon,
+                    };
+                })
+                .sort((a, b) => (b.usd ?? -1) - (a.usd ?? -1));
+        },
+        [data],
+    );
 
     // Re-read one wallet without disturbing the others.
     const refreshWallet = useCallback(
@@ -731,12 +766,30 @@ export default function PortfolioPage() {
                                     </thead>
                                     <tbody>
                                         {(view?.wallets ?? []).map((w) => (
+                                            <Fragment key={w.wallet.id}>
                                             <tr
-                                                key={w.wallet.id}
-                                                className="border-b border-border/10 hover:bg-muted/10 transition-colors"
+                                                onClick={() =>
+                                                    setOpenWallet((prev) =>
+                                                        prev === w.wallet.id
+                                                            ? null
+                                                            : w.wallet.id,
+                                                    )
+                                                }
+                                                aria-expanded={
+                                                    openWallet === w.wallet.id
+                                                }
+                                                className="border-b border-border/10 hover:bg-muted/10 transition-colors cursor-pointer"
                                             >
                                                 <td className="p-2 font-medium">
                                                     <div className="flex items-center gap-2">
+                                                        <ChevronRight
+                                                            className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${
+                                                                openWallet ===
+                                                                w.wallet.id
+                                                                    ? 'rotate-90'
+                                                                    : ''
+                                                            }`}
+                                                        />
                                                         <WalletAvatar
                                                             address={w.wallet.address}
                                                             size={24}
@@ -774,11 +827,12 @@ export default function PortfolioPage() {
                                                     <div className="flex items-center justify-end gap-2">
                                                         {money(w.usd)}
                                                         <button
-                                                            onClick={() =>
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
                                                                 refreshWallet(
                                                                     w.wallet.id,
-                                                                )
-                                                            }
+                                                                );
+                                                            }}
                                                             disabled={
                                                                 refreshingWallet !==
                                                                 null
@@ -799,6 +853,86 @@ export default function PortfolioPage() {
                                                     </div>
                                                 </td>
                                             </tr>
+
+                                            {openWallet === w.wallet.id && (
+                                                <tr className="border-b border-border/10">
+                                                    <td colSpan={4} className="p-0">
+                                                        <div className="bg-muted/20 px-4 py-3">
+                                                            {holdingsOf(w.wallet.id)
+                                                                .length === 0 ? (
+                                                                <p className="text-xs text-muted-foreground py-2">
+                                                                    Nothing held in this
+                                                                    wallet.
+                                                                </p>
+                                                            ) : (
+                                                                <table className="w-full text-xs">
+                                                                    <thead>
+                                                                        <tr className="text-muted-foreground">
+                                                                            <th className="h-7 px-2 text-left font-medium">
+                                                                                Asset
+                                                                            </th>
+                                                                            <th className="h-7 px-2 text-left font-medium">
+                                                                                Chain
+                                                                            </th>
+                                                                            <th className="h-7 px-2 text-right font-medium">
+                                                                                Quantity
+                                                                            </th>
+                                                                            <th className="h-7 px-2 text-right font-medium">
+                                                                                Value
+                                                                            </th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {holdingsOf(
+                                                                            w.wallet.id,
+                                                                        ).map((h) => (
+                                                                            <tr
+                                                                                key={h.key}
+                                                                                className="border-t border-border/10"
+                                                                            >
+                                                                                <td className="p-2">
+                                                                                    <div className="flex items-center gap-2 font-medium">
+                                                                                        <TokenLogo
+                                                                                            symbol={h.symbol}
+                                                                                            src={h.icon}
+                                                                                            size={18}
+                                                                                        />
+                                                                                        {h.symbol}
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td className="p-2">
+                                                                                    {CHAINS[h.chainId] && (
+                                                                                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                                                                            <ChainLogo
+                                                                                                chain={CHAINS[h.chainId]}
+                                                                                                size={14}
+                                                                                            />
+                                                                                            {CHAINS[h.chainId].name}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </td>
+                                                                                <td className="p-2 text-right font-mono">
+                                                                                    {qty(h.quantity)}
+                                                                                </td>
+                                                                                <td className="p-2 text-right font-medium">
+                                                                                    {h.usd !== undefined ? (
+                                                                                        money(h.usd)
+                                                                                    ) : (
+                                                                                        <span className="text-muted-foreground">
+                                                                                            price unavailable
+                                                                                        </span>
+                                                                                    )}
+                                                                                </td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            </Fragment>
                                         ))}
                                     </tbody>
                                 </table>
